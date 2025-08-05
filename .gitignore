@@ -1,0 +1,110 @@
+# Environment
+/venv/
+/.env
+devcontainer.json
+
+# ROS2 / Catkin
+/launch/*
+/rosbag*
+/local/
+/CATKIN_IGNORE
+
+# build and devel spaces
+/build/
+/install/
+/devel/
+/devel_isolated/
+/build_isolated/
+
+# message and service generation
+/msg_gen/
+/srv_gen/
+/msg/*Action*.msg
+/msg/_*.py
+/srv/_*.py
+
+# dynamic_reconfigure
+*.cfgc
+/cfg/cpp/
+/cfg/*.py
+
+# planning modules
+/planning/cfg/
+/planning/docs/
+/planning/src/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+
+# Packaging and distribution
+.Python
+dist/
+/build/
+/develop-eggs/
+/.eggs/
+/*.egg-info/
+*.egg
+sdist/
+/eggs/
+/parts/
+/var/
+/*.manifest
+/*.spec
+*.deb
+*.deb.*
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Test and coverage reports
+htmlcov/
+/.tox/
+/.pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+
+# Sphinx documentation
+docs/_build/
+
+# Translations
+*.mo
+*.pot
+
+# Logs
+*.log
+logs/
+log/
+video.txt
+
+# C/C++ binaries and libraries
+*.so
+*.dll
+*.dylib
+*.pcd
+*.pt
+
+# IDE and editor settings
+.idea/
+/.vscode/
+/*.user
+.project
+.cproject
+CMakeLists.txt.user
+qtcreator-*
+ssh/
+
+# Temporary files / OS files
+*~
+.#*
+.DS_Store
+Thumbs.db
+*.png
