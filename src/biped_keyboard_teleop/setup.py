@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'biped_keyboard_node = biped_keyboard_teleop.biped_keyboard_node:main'
         ],
     },
 )
