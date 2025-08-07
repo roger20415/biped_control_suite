@@ -1,5 +1,5 @@
 #!/bin/bash
-NETWORK_NAME="biped_bridge_network"
+NETWORK_NAME=host  #"biped_bridge_network"
 IMAGE_PATH="registry.screamtrumpet.csie.ncku.edu.tw/unity_env/pros_rl_image"
 IMAGE_TAG="latest"
 ENV_FILE="./.env"
@@ -18,6 +18,7 @@ run_container() {
     echo "Running the Docker container with the image $IMAGE_PATH..."
     docker run -it --rm --gpus all \
         -v "$(pwd)/src:/workspaces/src" \
+        -v "$(pwd)/humble_ws:/root/humble_ws" \
         --network $NETWORK_NAME \
         -p 9090:9090 \
         --env-file $ENV_FILE \
