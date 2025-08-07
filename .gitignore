@@ -108,3 +108,6 @@ ssh/
 .DS_Store
 Thumbs.db
 *.png
+
+# isaac sim connection
+/humble_ws
