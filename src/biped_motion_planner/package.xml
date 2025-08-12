@@ -4,7 +4,7 @@
   <name>biped_motion_planner</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="roger20415">roger20415</maintainer>
+  <maintainer email="roger20415@gmail.com">roger20415</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>

@@ -3,7 +3,7 @@ import rclpy
 import threading
 import time
 from rclpy.node import Node
-from trajectory_msgs.msg import JointTrajectoryPoint
+from std_msgs.msg import Float64MultiArray
 
 JOINT_NUMS:int = 12
 
@@ -12,9 +12,9 @@ class BipedKeyboardNode(Node):
     def __init__(self, stdscr):
         super().__init__('biped_keyboard_node')
 
-        self._joint_trajectory_publisher_ = self.create_publisher(
-            JointTrajectoryPoint,
-            '/biped/joint_trajectory',
+        self._joint_target_publisher_ = self.create_publisher(
+            Float64MultiArray,
+            '/biped/joint_target',
             10
         )
 
@@ -50,10 +50,9 @@ class BipedKeyboardNode(Node):
         self._pub_joint_pos()
 
     def _pub_joint_pos(self):
-        msg = JointTrajectoryPoint()
-        msg.positions = [float(joint_pos) for joint_pos in self._joint_pos]
-        msg.velocities = [0.0]*JOINT_NUMS
-        self._joint_trajectory_publisher_.publish(msg)
+        msg = Float64MultiArray()
+        msg.data = [float(i) for i in self._joint_pos]
+        self._joint_target_publisher_.publish(msg)
     
 def main(args=None):
     stdscr = curses.initscr()

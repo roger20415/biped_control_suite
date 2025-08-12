@@ -18,12 +18,12 @@ run_container() {
     echo "Running the Docker container with the image $IMAGE_PATH..."
     docker run -it --rm --gpus all \
         -v "$(pwd)/src:/workspaces/src" \
-        -v "$(pwd)/humble_ws:/root/humble_ws" \
-        -v "$(pwd)/scripts:/workspaces/scripts" \
         --network $NETWORK_NAME \
         -p 9090:9090 \
         --env-file $ENV_FILE \
-        $IMAGE_PATH:$IMAGE_TAG /bin/bash || { echo "Failed to run Docker container"; exit 1; }
+        $IMAGE_PATH:$IMAGE_TAG \
+        /bin/bash -c "export FASTRTPS_DEFAULT_PROFILES_FILE=/humble_ws/fastdds.xml && exec bash" \
+    || { echo "Failed to run Docker container"; exit 1; }
 
 }
 
