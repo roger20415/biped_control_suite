@@ -19,7 +19,7 @@ run_container() {
     docker run -it --rm --gpus all \
         -v "$(pwd)/src:/workspaces/src" \
         --network $NETWORK_NAME \
-        -p 9090:9090 \
+        --ipc host \
         --env-file $ENV_FILE \
         $IMAGE_PATH:$IMAGE_TAG \
         /bin/bash -c "export FASTRTPS_DEFAULT_PROFILES_FILE=/humble_ws/fastdds.xml && exec bash" \
