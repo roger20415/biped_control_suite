@@ -1,7 +1,6 @@
 import numpy as np
 from geometry_msgs.msg import Quaternion, Vector3
 from numpy.typing import NDArray
-from scipy.spatial.transform import Rotation as _Rot
 from typing import Sequence
 
 
@@ -10,7 +9,13 @@ class LinearAlgebraUtils():
     @staticmethod
     def quaternion_to_rotation_matrix(q: Quaternion) -> NDArray[np.float64]:
         q_norm = LinearAlgebraUtils.normalize_vec([q.x, q.y, q.z, q.w])
-        return _Rot.from_quat(q_norm, scalar_first=False).as_matrix().astype(np.float64)
+        x, y, z, w = q_norm[0], q_norm[1], q_norm[2], q_norm[3]
+        R = np.array([
+            [1 - 2*(y*y + z*z),     2*(x*y - z*w),     2*(x*z + y*w)],
+            [2*(x*y + z*w),     1 - 2*(x*x + z*z),     2*(y*z - x*w)],
+            [2*(x*z - y*w),         2*(y*z + x*w), 1 - 2*(x*x + y*y)]
+        ], dtype=np.float64)
+        return R
     
     @staticmethod
     def combine_transformation_matrix(R: NDArray[np.float64], t: Vector3) -> NDArray[np.float64]:
