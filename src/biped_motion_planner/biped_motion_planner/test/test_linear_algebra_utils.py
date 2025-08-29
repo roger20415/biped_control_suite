@@ -52,3 +52,9 @@ def test_combine_transformation_matrix(linear_algebra_utils):
     ], dtype=np.float64)
     T_computed = linear_algebra_utils.combine_transformation_matrix(R, t)
     assert np.allclose(T_computed, T_expected, atol=1e-12)
+
+def test_normalize_vec(linear_algebra_utils):
+    vec = [3.0, 4.0, 0.0]
+    vec_expected = np.array([0.6, 0.8, 0.0], dtype=np.float64)
+    vec_computed = linear_algebra_utils.normalize_vec(vec)
+    assert np.allclose(vec_computed, vec_expected, atol=1e-12)
