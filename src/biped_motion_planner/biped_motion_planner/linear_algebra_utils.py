@@ -40,3 +40,9 @@ class LinearAlgebraUtils():
         T_inv[:3, :3] = Rt
         T_inv[:3,  3] = -Rt @ t
         return T_inv
+    
+    @staticmethod
+    def transform_point(T: NDArray[np.float64], p: Vector3) -> Vector3:
+        p_homo = np.array([p.x, p.y, p.z, 1.0], dtype=np.float64) # shape = (4,)
+        p_tranformed = T @ p_homo  # shape = (4,)
+        return Vector3(x=float(p_tranformed[0]), y=float(p_tranformed[1]), z=float(p_tranformed[2]))
