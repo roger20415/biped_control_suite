@@ -2,9 +2,8 @@ import numpy as np
 from geometry_msgs.msg import Quaternion, Vector3
 from numpy.typing import NDArray
 from typing import Mapping
+from .config import Config
 from .linear_algebra_utils import LinearAlgebraUtils
-
-L_FOOT: float = 1.0
 
 class JointTargetsCalculator():
     def __init__(self):
@@ -18,7 +17,9 @@ class JointTargetsCalculator():
 
     def calc_joint_targets(self, p_W: Mapping[str, Vector3], q_W_baselink: Quaternion) -> dict[str, float]:
         self.p_W = dict(p_W)
-        self.p_W["foot"] = Vector3(p_W["target"].x, p_W["target"].y, p_W["target"].z + L_FOOT)
+        self.p_W["foot"] = Vector3(x=p_W["target"].x,
+                                   y=p_W["target"].y,
+                                   z=p_W["target"].z + Config.L_FOOT)
         self._transform_points_world_to_baselink(q_W_baselink)
 
     def _transform_points_world_to_baselink(self, q_W_baselink: Quaternion) -> None:
