@@ -90,3 +90,16 @@ def test_invert_transformation_matrix(linear_algebra_utils):
 
     assert np.allclose(T_computed_1, T_expected_1, atol=1e-12)
     assert np.allclose(T_computed_2, T_expected_2, atol=1e-12)
+
+def test_transform_point(linear_algebra_utils):
+    T = np.array([
+        [0.474747474747475, -0.464646464646465, -0.747474747474747, 1.0],
+        [-0.141414141414141, 0.797979797979798, -0.585858585858586, 2.0],
+        [0.868686868686869, 0.383838383838384, 0.313131313131313, 3.0],
+        [0.0, 0.0, 0.0, 1.0]
+    ], dtype=np.float64)
+    p = Vector3(x=1.0, y=0.0, z=0.0)
+    p_expected = Vector3(x=1.474747474747475, y=1.858585858585859, z=3.868686868686869) 
+    p_computed = linear_algebra_utils.transform_point(T, p)
+    assert np.allclose([p_computed.x, p_computed.y, p_computed.z],
+                       [p_expected.x, p_expected.y, p_expected.z], atol=1e-12)
