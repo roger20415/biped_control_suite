@@ -119,3 +119,68 @@ def test_transform_point(linear_algebra_utils):
     p_computed = linear_algebra_utils.transform_point(T, p)
     assert np.allclose([p_computed.x, p_computed.y, p_computed.z],
                        [p_expected.x, p_expected.y, p_expected.z], atol=1e-12)
+
+def test_check_valid_T(linear_algebra_utils):
+    T_valid = np.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]
+    ], dtype=np.float64)
+    linear_algebra_utils._check_valid_T(T_valid)
+
+def test_check_valid_T_invalid_shape(linear_algebra_utils):
+    T_invalid_shape = np.eye(3)
+    with pytest.raises(ValueError, match="T must be 4x4"):
+        linear_algebra_utils._check_valid_T(T_invalid_shape)
+
+def test_check_valid_T_invalid_last_row(linear_algebra_utils):
+    T_invalid_last_row = np.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 0]
+    ], dtype=np.float64)
+    with pytest.raises(ValueError, match="last row"):
+        linear_algebra_utils._check_valid_T(T_invalid_last_row)
+
+def test_check_valid_T_invalid_R(linear_algebra_utils):
+    T_invalid_R = np.array([
+        [1, 2, 3, 0],
+        [0, 1, 4, 0],
+        [5, 6, 0, 0],
+        [0, 0, 0, 1]
+    ], dtype=np.float64)
+    with pytest.raises(ValueError):
+        linear_algebra_utils._check_valid_T(T_invalid_R)
+
+def test_check_valid_R(linear_algebra_utils):
+    R_valid = np.array([
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+    ], dtype=np.float64)
+    linear_algebra_utils._check_valid_R(R_valid)
+
+def test_check_valid_R_invalid_shape(linear_algebra_utils):
+    R_invalid_shape = np.eye(4)
+    with pytest.raises(ValueError, match="R must be 3x3"):
+        linear_algebra_utils._check_valid_R(R_invalid_shape)
+
+def test_check_valid_R_non_orthogonal(linear_algebra_utils):
+    R_non_orthogonal = np.array([
+        [1, 2, 3],
+        [0, 1, 4],
+        [5, 6, 0]
+    ], dtype=np.float64)
+    with pytest.raises(ValueError, match="orthogonal"):
+        linear_algebra_utils._check_valid_R(R_non_orthogonal)
+
+def test_check_valid_R_invalid_determinant(linear_algebra_utils):
+    R_invalid_determinant = np.array([
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, -1]
+    ], dtype=np.float64)
+    with pytest.raises(ValueError, match="det"):
+        linear_algebra_utils._check_valid_R(R_invalid_determinant)
