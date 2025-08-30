@@ -59,6 +59,11 @@ def test_normalize_vec(linear_algebra_utils):
     vec_computed = linear_algebra_utils.normalize_vec(vec)
     assert np.allclose(vec_computed, vec_expected, atol=1e-12)
 
+def test_normalize_zero_vec(linear_algebra_utils):
+    vec = [0.0, 0.0, 0.0]
+    with pytest.raises(ValueError, match="Cannot normalize zero-length vector"):
+        linear_algebra_utils.normalize_vec(vec)
+
 def test_invert_transformation_matrix(linear_algebra_utils):
     T_1 = np.array([
         [0.474747474747475, -0.464646464646465, -0.747474747474747, 1.0],
