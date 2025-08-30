@@ -29,7 +29,7 @@ class JointTargetsCalculator():
     def _calc_T_BW(self, q_W_baselink: Quaternion, p_W_baselink: Vector3) -> NDArray[np.float64]:
         R_WB = LinearAlgebraUtils.quaternion_to_rotation_matrix(q_W_baselink)
         T_WB = LinearAlgebraUtils.combine_transformation_matrix(R_WB, p_W_baselink)
-        T_BW = LinearAlgebraUtils._invert_transformation_matrix(T_WB)
+        T_BW = LinearAlgebraUtils.invert_transformation_matrix(T_WB)
         return T_BW
     
     def _calc_R_BL(self) -> NDArray[np.float64]:

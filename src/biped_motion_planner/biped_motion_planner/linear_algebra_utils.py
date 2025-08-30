@@ -35,7 +35,7 @@ class LinearAlgebraUtils():
         return arr / norm
     
     @staticmethod
-    def _invert_transformation_matrix(T: NDArray[np.float64]) -> NDArray[np.float64]:
+    def invert_transformation_matrix(T: NDArray[np.float64]) -> NDArray[np.float64]:
         if T.shape != (4, 4):
             raise ValueError(f"T must be 4x4, got shape {T.shape}")
         R = T[:3, :3]

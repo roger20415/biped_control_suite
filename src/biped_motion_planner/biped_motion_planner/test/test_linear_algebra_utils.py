@@ -72,7 +72,7 @@ def test_invert_transformation_matrix(linear_algebra_utils):
         [-0.747474747475, -0.585858585859,  0.313131313131,  0.97979797998 ],
         [ 0.0,             0.0,             0.0,             1.0           ]
     ], dtype=np.float64)
-    T_computed_1 = linear_algebra_utils._invert_transformation_matrix(T_1)
+    T_computed_1 = linear_algebra_utils.invert_transformation_matrix(T_1)
 
     T_2 = np.array([
         [ 0.353553, -0.612372,  0.707107,  1.5 ],
@@ -86,10 +86,15 @@ def test_invert_transformation_matrix(linear_algebra_utils):
         [ 0.707107, -0.353553,  0.612372, -2.073953 ],
         [ 0.0,       0.0,       0.0,       1.0      ]
     ], dtype=np.float64)
-    T_computed_2 = linear_algebra_utils._invert_transformation_matrix(T_2)
+    T_computed_2 = linear_algebra_utils.invert_transformation_matrix(T_2)
 
     assert np.allclose(T_computed_1, T_expected_1, atol=1e-12)
     assert np.allclose(T_computed_2, T_expected_2, atol=1e-12)
+
+def test_invert_transformation_matrix_invalid_shape(linear_algebra_utils):
+    T = np.eye(3)
+    with pytest.raises(ValueError, match="T must be 4x4, got shape {T.shape}"):
+        linear_algebra_utils.invert_transformation_matrix(T)
 
 def test_transform_point(linear_algebra_utils):
     T = np.array([
