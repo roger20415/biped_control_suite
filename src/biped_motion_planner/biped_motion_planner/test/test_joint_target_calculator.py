@@ -44,3 +44,18 @@ def test_transform_points_world_to_baselink(joint_targets_calculator):
         [-1.0, 0.0, -1.41421356],
         atol=1e-12
     )
+
+def test_calc_T_BW(joint_targets_calculator):
+    q_W_baselink = Quaternion(x=0.6532814824381882, 
+                            y=0.27059805007309845, 
+                            z=-0.6532814824381883, 
+                            w=0.27059805007309856)
+    p_W_baselink = Vector3(x=0.5, y=1.5, z=2.5)
+    T_BW = joint_targets_calculator._calc_T_BW(q_W_baselink, p_W_baselink)
+    T_BW_expected = np.array([
+        [ 0.0,                0.0,               -1.0,                2.5],
+        [ 0.7071067811865476, -0.7071067811865476, 0.0,               0.7071067811865476],
+        [-0.7071067811865476, -0.7071067811865476, 0.0,               1.4142135623730951],
+        [ 0.0,                0.0,                0.0,                1.0],
+    ], dtype=np.float64)
+    assert np.allclose(T_BW, T_BW_expected, atol=1e-12)
