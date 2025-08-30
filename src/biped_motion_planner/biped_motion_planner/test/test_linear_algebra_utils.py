@@ -93,7 +93,18 @@ def test_invert_transformation_matrix(linear_algebra_utils):
 
 def test_invert_transformation_matrix_invalid_shape(linear_algebra_utils):
     T = np.eye(3)
-    with pytest.raises(ValueError, match="T must be 4x4, got shape {T.shape}"):
+    with pytest.raises(ValueError, match="T must be 4x4"):
+        linear_algebra_utils.invert_transformation_matrix(T)
+
+def test_invert_transformation_matrix_invalid_last_row(linear_algebra_utils):
+    T = np.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 0]
+    ], dtype=np.float64)
+
+    with pytest.raises(ValueError, match="last row"):
         linear_algebra_utils.invert_transformation_matrix(T)
 
 def test_transform_point(linear_algebra_utils):
