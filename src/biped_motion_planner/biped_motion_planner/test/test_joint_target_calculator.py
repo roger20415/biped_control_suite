@@ -69,6 +69,37 @@ def test_calc_WB_transform(joint_targets_calculator):
     ], dtype=np.float64)
     assert np.allclose(T_BW, T_BW_expected, atol=1e-12)
 
+def test_calc_BL_transforms(joint_targets_calculator):
+    joint_targets_calculator.p_B = {
+        "foot": Vector3(x=-1.0, y=0.0, z=-1.41421356),
+        "hip": Vector3(x=-0.5, y=-0.35355339, z=-0.35355339)
+    }
+
+    R_BL, R_LB, T_LB = joint_targets_calculator._calc_BL_transforms()
+    R_BL_expected = np.array([
+        [1.0, 0.0, 0.0],
+        [0.0, 0.948683298050514, -0.316227766016838],
+        [0.0, 0.316227766016838,  0.948683298050514],
+    ], dtype=np.float64)
+
+    R_LB_expected = np.array([
+        [1.0, 0.0, 0.0],
+        [0.0, 0.948683298050514,  0.316227766016838],
+        [0.0, -0.316227766016838, 0.948683298050514],
+    ], dtype=np.float64)
+
+    T_LB_expected = np.array([
+        [1.0, 0.0, 0.0, 0.5],
+        [0.0, 0.948683298050514,  0.316227766016838, 0.447213595499958],
+        [0.0, -0.316227766016838, 0.948683298050514, 0.223606797749979],
+        [0.0, 0.0, 0.0, 1.0],
+    ], dtype=np.float64)
+
+    assert np.allclose(R_BL, R_BL_expected, atol=1e-12)
+    assert np.allclose(R_LB, R_LB_expected, atol=1e-12)
+    assert np.allclose(T_LB, T_LB_expected, atol=1e-12)
+
+
 def test_calc_R_BL(joint_targets_calculator):
     joint_targets_calculator.p_B = {
         "foot": Vector3(x=-1.0, y=0.0, z=-1.41421356),
