@@ -21,10 +21,10 @@ class JointTargetsCalculator():
                                    y=p_W["target"].y,
                                    z=p_W["target"].z + Config.L_FOOT)
         R_WB, T_BW = self._calc_WB_transforms(q_W_baselink, self.p_W["baselink"])
-        self.p_B.update(self._transform_points_world_to_baselink(T_BW))
+        self.p_B.update(self._transform_points_World_to_Baselink(T_BW))
         R_BL, R_LB, T_LB = self._calc_BL_transforms()
 
-    def _transform_points_world_to_baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
+    def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
         p_B_foot = LinearAlgebraUtils.transform_point(T_BW, self.p_W["foot"])
         return {"hip": p_B_hip, "foot": p_B_foot}
