@@ -22,10 +22,12 @@ def test_calc_joint_targets_adds_L_FOOT_to_target_z(joint_targets_calculator):
         Config.L_FOOT)
     
 def test_transform_points_world_to_baselink(joint_targets_calculator):
-    q_W_baselink = Quaternion(x=0.6532814824381882, 
-                              y=0.27059805007309845, 
-                              z=-0.6532814824381883, 
-                              w=0.27059805007309856)
+    T_BW = np.array([
+        [ 0.0,                0.0,               -1.0,                2.5],
+        [ 0.7071067811865476, -0.7071067811865476, 0.0,               0.7071067811865476],
+        [-0.7071067811865476, -0.7071067811865476, 0.0,               1.4142135623730951],
+        [ 0.0,                0.0,                0.0,                1.0],
+    ], dtype=np.float64)
     
     joint_targets_calculator.p_W = {
         "foot": Vector3(x=1.5, y=2.5, z=3.5),
@@ -33,7 +35,7 @@ def test_transform_points_world_to_baselink(joint_targets_calculator):
         "hip": Vector3(x=0.5, y=2.0, z=3.0)
     }
 
-    joint_targets_calculator._transform_points_world_to_baselink(q_W_baselink)
+    joint_targets_calculator.p_B.update(joint_targets_calculator._transform_points_world_to_baselink(T_BW))
     assert np.allclose(
         [joint_targets_calculator.p_B["hip"].x, joint_targets_calculator.p_B["hip"].y, joint_targets_calculator.p_B["hip"].z],
         [-0.5, -0.35355339, -0.35355339],
@@ -45,13 +47,20 @@ def test_transform_points_world_to_baselink(joint_targets_calculator):
         atol=1e-12
     )
 
-def test_calc_T_BW(joint_targets_calculator):
+def test_calc_WB_transform(joint_targets_calculator):
     q_W_baselink = Quaternion(x=0.6532814824381882, 
                             y=0.27059805007309845, 
                             z=-0.6532814824381883, 
                             w=0.27059805007309856)
     p_W_baselink = Vector3(x=0.5, y=1.5, z=2.5)
-    T_BW = joint_targets_calculator._calc_T_BW(q_W_baselink, p_W_baselink)
+    R_WB, T_BW = joint_targets_calculator._calc_WB_transforms(q_W_baselink, p_W_baselink)
+    R_WB_expected = np.array([
+        [ 0.0,  0.7071067811865476, -0.7071067811865476],
+        [ 0.0, -0.7071067811865476, -0.7071067811865476],
+        [-1.0,  0.0,                0.0],
+    ], dtype=np.float64)
+    assert np.allclose(R_WB, R_WB_expected, atol=1e-12)
+
     T_BW_expected = np.array([
         [ 0.0,                0.0,               -1.0,                2.5],
         [ 0.7071067811865476, -0.7071067811865476, 0.0,               0.7071067811865476],
