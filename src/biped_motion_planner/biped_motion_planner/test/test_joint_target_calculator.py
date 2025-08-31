@@ -69,6 +69,25 @@ def test_calc_WB_transform(joint_targets_calculator):
     ], dtype=np.float64)
     assert np.allclose(T_BW, T_BW_expected, atol=1e-12)
 
+def test_transform_points_Baselink_to_Leg(joint_targets_calculator):
+    T_LB = np.array([
+        [1.0, 0.0, 0.0, 0.5],
+        [0.0, 0.948683298050514,  0.316227766016838, 0.447213595499958],
+        [0.0, -0.316227766016838, 0.948683298050514, 0.223606797749979],
+        [0.0, 0.0, 0.0, 1.0],
+    ], dtype=np.float64)
+
+    joint_targets_calculator.p_B = {
+        "foot": Vector3(x=-1.0, y=0.0, z=-1.41421356)
+    }
+    joint_targets_calculator.p_L.update(joint_targets_calculator._transform_points_Baselink_to_Leg(T_LB))
+
+    assert np.allclose(
+        [joint_targets_calculator.p_L["foot"].x, joint_targets_calculator.p_L["foot"].y, joint_targets_calculator.p_L["foot"].z],
+        [-0.5, 0.0, -1.118033989],
+        atol=1e-9
+    )
+
 def test_calc_BL_transforms(joint_targets_calculator):
     joint_targets_calculator.p_B = {
         "foot": Vector3(x=-1.0, y=0.0, z=-1.41421356),
