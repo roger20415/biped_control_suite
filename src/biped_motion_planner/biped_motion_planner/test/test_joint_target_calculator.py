@@ -190,3 +190,22 @@ def test_project_gravity_to_uw_plane(joint_targets_calculator):
     e_L_proj = joint_targets_calculator._project_gravity_to_uw_plane(R_BW, R_LB)
     e_L_proj_expected = np.array([-1.0, 0.0, 0.0], dtype=np.float64)
     assert np.allclose(e_L_proj, e_L_proj_expected, atol=1e-12)
+
+def test_calc_p_uw_ankle(joint_targets_calculator):
+    joint_targets_calculator.p_uw = {
+        "foot": np.array([-0.5, -1.118033989], dtype=np.float64)
+    }
+    e_L_proj = np.array([0.6, 0.0, 0.8], dtype=np.float64)
+    p_uw_ankle = joint_targets_calculator._calc_p_uw_ankle(e_L_proj)
+
+    # The vector of ankle to foot
+    delta = joint_targets_calculator.p_uw["foot"] - p_uw_ankle
+    assert np.isclose(np.linalg.norm(delta), Config.L_ANKLE, atol=1e-12)
+
+    e_uw_proj = np.array([e_L_proj[0], e_L_proj[2]], dtype=np.float64)
+    e_uw_proj_norm = e_uw_proj / np.linalg.norm(e_uw_proj)
+    delta_norm = delta / np.linalg.norm(delta)
+    assert np.allclose(delta_norm, e_uw_proj_norm, atol=1e-12)
+
+    
+    

@@ -78,8 +78,8 @@ class JointTargetsCalculator():
         delta_y = self.p_B["hip"].y - self.p_B["foot"].y
         delta_z = self.p_B["hip"].z - self.p_B["foot"].z
         return np.degrees(np.arctan2(-delta_y, delta_z))
-    
-    def _project_gravity_to_uw_plane(self, R_BW, R_LB) -> NDArray[np.float64]:
+
+    def _project_gravity_to_uw_plane(self, R_BW: NDArray[np.float64], R_LB: NDArray[np.float64]) -> NDArray[np.float64]:
         """
         Returns the projection of World -Z (gravity) onto the Leg's uw-plane,
         expressed as (u, v, w) scalar components.
@@ -100,3 +100,9 @@ class JointTargetsCalculator():
         e_B_proj = P / norm_P
         e_L_proj = R_LB @ e_B_proj
         return e_L_proj
+    
+    def _calc_p_uw_ankle(self, e_L_proj: NDArray[np.float64]) -> float:
+        e_uw_proj: NDArray[np.float64] = e_L_proj[[0, 2]]
+        e_uw_proj_norm = LinearAlgebraUtils.normalize_vec(e_uw_proj)
+        d_uw_ankle = Config.L_ANKLE * e_uw_proj_norm
+        return self.p_uw["foot"] - d_uw_ankle
