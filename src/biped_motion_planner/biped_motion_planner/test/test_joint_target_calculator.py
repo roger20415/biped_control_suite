@@ -94,17 +94,11 @@ def test_calc_BL_transforms(joint_targets_calculator):
         "hip": Vector3(x=-0.5, y=-0.35355339, z=-0.35355339)
     }
 
-    R_BL, R_LB, T_LB = joint_targets_calculator._calc_BL_transforms()
+    R_BL, T_LB = joint_targets_calculator._calc_BL_transforms()
     R_BL_expected = np.array([
         [1.0, 0.0, 0.0],
         [0.0, 0.948683298050514, -0.316227766016838],
         [0.0, 0.316227766016838,  0.948683298050514],
-    ], dtype=np.float64)
-
-    R_LB_expected = np.array([
-        [1.0, 0.0, 0.0],
-        [0.0, 0.948683298050514,  0.316227766016838],
-        [0.0, -0.316227766016838, 0.948683298050514],
     ], dtype=np.float64)
 
     T_LB_expected = np.array([
@@ -115,7 +109,6 @@ def test_calc_BL_transforms(joint_targets_calculator):
     ], dtype=np.float64)
 
     assert np.allclose(R_BL, R_BL_expected, atol=1e-12)
-    assert np.allclose(R_LB, R_LB_expected, atol=1e-12)
     assert np.allclose(T_LB, T_LB_expected, atol=1e-12)
 
 

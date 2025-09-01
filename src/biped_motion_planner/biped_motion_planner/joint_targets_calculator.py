@@ -22,11 +22,11 @@ class JointTargetsCalculator():
                                    z=p_W["target"].z + Config.L_FOOT)
         R_WB, T_BW = self._calc_WB_transforms(q_W_baselink, self.p_W["baselink"])
         self.p_B.update(self._transform_points_World_to_Baselink(T_BW))
-        R_BL, R_LB, T_LB = self._calc_BL_transforms()
+        R_BL, T_LB = self._calc_BL_transforms()
         self.p_L.update(self._transform_points_Baselink_to_Leg(T_LB))
         self.p_uw.update(self._transform_points_Leg_to_uw())
         self.joint_phi["leg"] = self._calc_phi_BL()
-        e_L_proj = self._project_gravity_to_uw_plane(R_WB.T, R_LB)
+        e_L_proj = self._project_gravity_to_uw_plane(R_WB.T, R_BL.T)
 
     def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
@@ -46,12 +46,10 @@ class JointTargetsCalculator():
         return {"foot": p_L_foot}
 
     def _calc_BL_transforms(self) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        #TODO return either R_BL or R_LB 
         R_BL = self._calc_R_BL()
-        R_LB = R_BL.T
         T_BL = LinearAlgebraUtils.combine_transformation_matrix(R_BL, self.p_B["hip"])
         T_LB = LinearAlgebraUtils.invert_transformation_matrix(T_BL)
-        return R_BL, R_LB, T_LB
+        return R_BL, T_LB
     
     def _calc_R_BL(self) -> NDArray[np.float64]:
         """
