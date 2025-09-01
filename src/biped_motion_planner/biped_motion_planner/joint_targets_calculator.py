@@ -25,6 +25,7 @@ class JointTargetsCalculator():
         R_BL, R_LB, T_LB = self._calc_BL_transforms()
         self.p_L.update(self._transform_points_Baselink_to_Leg(T_LB))
         self.p_uw.update(self._transform_points_Leg_to_uw())
+        self.joint_phi["leg"] = self._calc_phi_BL()
 
     def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
@@ -72,3 +73,8 @@ class JointTargetsCalculator():
     def _transform_points_Leg_to_uw(self) -> dict[str, NDArray[np.float64]]:
         p_uw_foot = np.array([self.p_L["foot"].x, self.p_L["foot"].z])
         return {"foot": p_uw_foot}
+    
+    def _calc_phi_BL(self) -> float:
+        delta_y = self.p_B["hip"].y - self.p_B["foot"].y
+        delta_z = self.p_B["hip"].z - self.p_B["foot"].z
+        return np.degrees(np.arctan2(-delta_y, delta_z))

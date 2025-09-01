@@ -151,3 +151,21 @@ def test_transform_points_Leg_to_uw(joint_targets_calculator):
         [-0.5, -1.118033989],
         atol=1e-12
     )
+
+def test_calc_phi_BL(joint_targets_calculator):
+
+    # foot at 3rd quadrant
+    joint_targets_calculator.p_B = {
+        "foot": Vector3(x=5.0, y=-1.73205081, z=-1.0),
+        "hip": Vector3(x=0.0, y=0.0, z=-0.0)
+    }
+    phi_BL = joint_targets_calculator._calc_phi_BL()
+    assert np.allclose(phi_BL, -60, atol=1e-12)
+
+    # foot at 4th quadrant
+    joint_targets_calculator.p_B = {
+        "foot": Vector3(x=5.0, y=1.73205081, z=-1.0),
+        "hip": Vector3(x=0.0, y=0.0, z=-0.0)
+    }
+    phi_BL = joint_targets_calculator._calc_phi_BL()
+    assert np.allclose(phi_BL, 60, atol=1e-12)
