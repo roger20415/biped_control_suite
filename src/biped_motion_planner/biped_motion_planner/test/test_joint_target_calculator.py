@@ -131,3 +131,15 @@ def test_calc_R_BL(joint_targets_calculator):
         [0.0, 0.316227766016838,  0.948683298050514],
     ], dtype=np.float64)
     assert np.allclose(R_BL, R_BL_expected, atol=1e-12)
+
+def test_transform_points_Leg_to_uw(joint_targets_calculator):
+    joint_targets_calculator.p_L = {
+        "foot": Vector3(x=-0.5, y=0.0, z=-1.118033989)
+    }
+    joint_targets_calculator.p_uw.update(joint_targets_calculator._transform_points_Leg_to_uw())
+
+    assert np.allclose(
+        [joint_targets_calculator.p_uw["foot"][0], joint_targets_calculator.p_uw["foot"][1]],
+        [-0.5, -1.118033989],
+        atol=1e-12
+    )

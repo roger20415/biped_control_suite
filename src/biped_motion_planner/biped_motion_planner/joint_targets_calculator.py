@@ -10,7 +10,7 @@ class JointTargetsCalculator():
         self.p_W: dict[str, Vector3] = {} # points in the World frame
         self.p_B: dict[str, Vector3] = {} # points in the Baselink frame
         self.p_L: dict[str, Vector3] = {} # points in the Leg frame
-        self.p_uw: dict[str, tuple[float, float]] = {} # points in the (u,w) coordinates in the Leg frame
+        self.p_uw: dict[str, NDArray[np.float64, np.float64]] = {} # points in the (u,w) coordinates in the Leg frame
         self.joint_phi: dict[str, float] = {} # +u-axis rotation in the Leg frame
         self.joint_theta: dict[str, float] = {} # -v-axis rotation in the Leg frame
         self.joint_targets: dict[str, float] = {} # final joint angle commands
@@ -24,6 +24,7 @@ class JointTargetsCalculator():
         self.p_B.update(self._transform_points_World_to_Baselink(T_BW))
         R_BL, R_LB, T_LB = self._calc_BL_transforms()
         self.p_L.update(self._transform_points_Baselink_to_Leg(T_LB))
+        self.p_uw.update(self._transform_points_Leg_to_uw())
 
     def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
@@ -65,3 +66,7 @@ class JointTargetsCalculator():
         v = -np.cross(u, w)
 
         return np.column_stack((u, v, w))
+
+    def _transform_points_Leg_to_uw(self) -> dict[str, NDArray[np.float64]]:
+        p_uw_foot = np.array([self.p_L["foot"].x, self.p_L["foot"].z])
+        return {"foot": p_uw_foot}
