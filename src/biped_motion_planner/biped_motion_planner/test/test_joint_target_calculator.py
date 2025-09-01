@@ -169,3 +169,31 @@ def test_calc_phi_BL(joint_targets_calculator):
     }
     phi_BL = joint_targets_calculator._calc_phi_BL()
     assert np.allclose(phi_BL, 60, atol=1e-12)
+
+
+def test_project_gravity_to_uw_plane(joint_targets_calculator):
+    R_BW = np.eye(3, dtype=np.float64)
+    R_LB = np.array([
+        [1.0, 0.0, 0.0],
+        [0.0, 0.948683298050514,  0.316227766016838],
+        [0.0, -0.316227766016838, 0.948683298050514],
+    ], dtype=np.float64)
+    e_L_proj = joint_targets_calculator._project_gravity_to_uw_plane(R_BW, R_LB)
+    e_L_proj_expected = np.array([0.0, 0.0, -1.0], dtype=np.float64)
+    assert np.allclose(e_L_proj, e_L_proj_expected, atol=1e-12)
+
+    R_BW = np.array([
+        [ 0.0, 0.0, 1.0],
+        [ 0.0, 1.0, 0.0],
+        [-1.0, 0.0, 0.0],
+    ], dtype=np.float64)
+
+    R_LB = np.array([
+        [1.0, 0.0, 0.0],
+        [0.0, 0.948683298050514,  0.316227766016838],
+        [0.0, -0.316227766016838, 0.948683298050514],
+    ], dtype=np.float64)
+
+    e_L_proj = joint_targets_calculator._project_gravity_to_uw_plane(R_BW, R_LB)
+    e_L_proj_expected = np.array([-1.0, 0.0, 0.0], dtype=np.float64)
+    assert np.allclose(e_L_proj, e_L_proj_expected, atol=1e-12)

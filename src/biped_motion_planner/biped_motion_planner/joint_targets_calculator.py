@@ -26,6 +26,7 @@ class JointTargetsCalculator():
         self.p_L.update(self._transform_points_Baselink_to_Leg(T_LB))
         self.p_uw.update(self._transform_points_Leg_to_uw())
         self.joint_phi["leg"] = self._calc_phi_BL()
+        e_L_proj = self._project_gravity_to_uw_plane(R_WB.T, R_LB)
 
     def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
@@ -45,6 +46,7 @@ class JointTargetsCalculator():
         return {"foot": p_L_foot}
 
     def _calc_BL_transforms(self) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+        #TODO return either R_BL or R_LB 
         R_BL = self._calc_R_BL()
         R_LB = R_BL.T
         T_BL = LinearAlgebraUtils.combine_transformation_matrix(R_BL, self.p_B["hip"])
@@ -78,3 +80,25 @@ class JointTargetsCalculator():
         delta_y = self.p_B["hip"].y - self.p_B["foot"].y
         delta_z = self.p_B["hip"].z - self.p_B["foot"].z
         return np.degrees(np.arctan2(-delta_y, delta_z))
+    
+    def _project_gravity_to_uw_plane(self, R_BW, R_LB) -> NDArray[np.float64]:
+        """
+        Returns the projection of World -Z (gravity) onto the Leg's uw-plane,
+        expressed as (u, v, w) scalar components.
+        """
+        e_W = np.array([0.0, 0.0, -1.0]) # gravity vector in World frame
+        e_B = R_BW @ e_W
+        R_BL = R_LB.T
+        nhat_B_uw = -R_BL[:, 1]
+
+        P = (np.eye(3) - np.outer(nhat_B_uw, nhat_B_uw)) @ e_B
+        norm_P = np.linalg.norm(P)
+
+        if norm_P < 1e-12:
+        # gravity parallel to uw plane normal -> projection is zero;
+        # in Leg frame it must align with -w_L after normalization
+            return np.array([0, 0, -1])
+
+        e_B_proj = P / norm_P
+        e_L_proj = R_LB @ e_B_proj
+        return e_L_proj
