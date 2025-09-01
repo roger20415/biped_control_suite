@@ -132,6 +132,14 @@ def test_calc_R_BL(joint_targets_calculator):
     ], dtype=np.float64)
     assert np.allclose(R_BL, R_BL_expected, atol=1e-12)
 
+def test_calc_R_BL_norm_zero(joint_targets_calculator):
+    joint_targets_calculator.p_B = {
+        "foot": Vector3(x=0.0, y=0.0, z=0.0),
+        "hip": Vector3(x=5.0, y=0.0, z=0.0)
+    }
+    with pytest.raises(ValueError, match="zero-length"):
+        joint_targets_calculator._calc_R_BL()
+
 def test_transform_points_Leg_to_uw(joint_targets_calculator):
     joint_targets_calculator.p_L = {
         "foot": Vector3(x=-0.5, y=0.0, z=-1.118033989)

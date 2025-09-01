@@ -60,7 +60,9 @@ class JointTargetsCalculator():
         foot_to_hip_vec = Vector3(x=self.p_B["hip"].x - self.p_B["foot"].x,
                                   y=self.p_B["hip"].y - self.p_B["foot"].y,
                                   z=self.p_B["hip"].z - self.p_B["foot"].z)
-        norm_w = np.linalg.norm(np.array([foot_to_hip_vec.y, foot_to_hip_vec.z])) # length of the original w vector 
+        norm_w = np.linalg.norm(np.array([foot_to_hip_vec.y, foot_to_hip_vec.z])) # length of the original w vector
+        if norm_w < 1e-12:
+            raise ValueError("Cannot normalize zero-length vector")        
         u = np.array([1.0, 0.0, 0.0])
         w = np.array([0.0, foot_to_hip_vec.y/norm_w, foot_to_hip_vec.z/norm_w])
         v = -np.cross(u, w)
