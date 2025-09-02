@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from geometry_msgs.msg import Quaternion, Vector3
 from numpy.typing import NDArray
 from typing import Mapping
@@ -93,8 +94,11 @@ class JointTargetsCalculator():
         norm_P = np.linalg.norm(P)
 
         if norm_P < 1e-12:
-        # gravity parallel to uw plane normal -> projection is zero;
-        # in Leg frame it must align with -w_L after normalization
+            warnings.warn(
+                "Gravity is parallel to the uw-plane normal; projection is degenerated. Returning -w_L.",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
             return np.array([0, 0, -1])
 
         e_B_proj = P / norm_P

@@ -191,6 +191,16 @@ def test_project_gravity_to_uw_plane(joint_targets_calculator):
     e_L_proj_expected = np.array([-1.0, 0.0, 0.0], dtype=np.float64)
     assert np.allclose(e_L_proj, e_L_proj_expected, atol=1e-12)
 
+def test_project_gravity_to_uw_plane_degenerate_projection_warns(joint_targets_calculator):
+    R_BW = np.eye(3, dtype=np.float64)
+    R_LB = np.array([[1., 0., 0.],
+                     [0., 0., -1.],
+                     [0., 1.,  0.]], dtype=np.float64)
+    with pytest.warns(RuntimeWarning, match="Gravity is parallel to the uw-plane normal; projection is degenerated. Returning -w_L."):
+        e_L_proj = joint_targets_calculator._project_gravity_to_uw_plane(R_BW, R_LB)
+    e_L_proj_expected = np.array([0.0, 0.0, -1.0], dtype=np.float64)
+    assert np.allclose(e_L_proj, e_L_proj_expected, atol=1e-12)
+
 def test_calc_p_uw_ankle(joint_targets_calculator):
     joint_targets_calculator.p_uw = {
         "foot": np.array([-0.5, -1.118033989], dtype=np.float64)
