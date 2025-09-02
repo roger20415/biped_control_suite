@@ -5,6 +5,7 @@ from numpy.typing import NDArray
 from typing import Mapping, Optional
 from .config import Config
 from .linear_algebra_utils import LinearAlgebraUtils
+from .trigonometric_utils import TrigonometricUtils
 
 class JointTargetsCalculator():
     def __init__(self):
@@ -116,7 +117,7 @@ class JointTargetsCalculator():
     def _calc_theta_calf(self) -> tuple[Optional[float], Optional[NDArray[np.float64]], bool]:
         # sign = -1 for forward-facing knee (human-like); sign = 1 for backward-facing knee (dog-like)
         EPS = 1e-12
-        SIGN = -1
+        SIGN = np.sign(-1)
         thigh_to_ankle_vec_uw = self.p_uw["ankle"] - self.p_uw["thigh"]
         thigh_to_ankle_distance = np.linalg.norm(thigh_to_ankle_vec_uw)
 
@@ -141,9 +142,8 @@ class JointTargetsCalculator():
 
         # gamma is the angle between thigh link and calf link
         cos_gamma = (Config.THIGH_LEN**2 + Config.CALF_LEN**2 - thigh_to_ankle_distance**2) / (2 * Config.THIGH_LEN * Config.CALF_LEN)
-        # TODO check cos gamma clamp +-1.0
-
-        gamma = np.sign(SIGN)*np.degrees(np.arccos(cos_gamma))
+        cos_gamma = TrigonometricUtils.clamp_cos(cos_gamma)
+        gamma = SIGN*np.degrees(np.arccos(cos_gamma))
         theta_calf = 180.0 - gamma
         theta_calf = (theta_calf + 180) % 360 - 180
 
