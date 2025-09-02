@@ -20,7 +20,7 @@ class JointTargetsCalculator():
         self.p_W = dict(p_W)
         self.p_W["foot"] = Vector3(x=p_W["target"].x,
                                    y=p_W["target"].y,
-                                   z=p_W["target"].z + Config.L_FOOT)
+                                   z=p_W["target"].z + Config.FOOT_LEN)
         R_WB, T_BW = self._calc_WB_transforms(q_W_baselink, self.p_W["baselink"])
         self.p_B.update(self._transform_points_World_to_Baselink(T_BW))
         R_BL, T_LB = self._calc_BL_transforms()
@@ -29,6 +29,7 @@ class JointTargetsCalculator():
         self.joint_phi["leg"] = self._calc_phi_BL()
         e_L_proj = self._project_gravity_to_uw_plane(R_WB.T, R_BL.T)
         self.p_uw["ankle"] = self._calc_p_uw_ankle(e_L_proj)
+        self.p_uw["thigh"] = np.array([0.0, -Config.HIP_LEN])
 
     def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
@@ -109,5 +110,5 @@ class JointTargetsCalculator():
     def _calc_p_uw_ankle(self, e_L_proj: NDArray[np.float64]) -> NDArray[np.float64]:
         e_uw_proj: NDArray[np.float64] = e_L_proj[[0, 2]]
         e_uw_proj_norm = LinearAlgebraUtils.normalize_vec(e_uw_proj)
-        d_uw_ankle = Config.L_ANKLE * e_uw_proj_norm
+        d_uw_ankle = Config.ANKLE_LEN * e_uw_proj_norm
         return self.p_uw["foot"] - d_uw_ankle

@@ -9,7 +9,7 @@ from biped_motion_planner.joint_targets_calculator import JointTargetsCalculator
 def joint_targets_calculator():
     return JointTargetsCalculator()
 
-def test_calc_joint_targets_adds_L_FOOT_to_target_z(joint_targets_calculator):
+def test_calc_joint_targets_adds_FOOT_LEN_to_target_z(joint_targets_calculator):
     p_W = {
         "target": Vector3(x=1.5, y=2.5, z=3.5),
         "baselink": Vector3(x=0.5, y=1.5, z=2.5),
@@ -19,7 +19,7 @@ def test_calc_joint_targets_adds_L_FOOT_to_target_z(joint_targets_calculator):
     joint_targets_calculator.calc_joint_targets(p_W, q_W_baselink)
     assert np.isclose(
         joint_targets_calculator.p_W["foot"].z - joint_targets_calculator.p_W["target"].z, 
-        Config.L_FOOT)
+        Config.FOOT_LEN)
     
 def test_transform_points_World_to_Baselink(joint_targets_calculator):
     T_BW = np.array([
@@ -210,7 +210,7 @@ def test_calc_p_uw_ankle(joint_targets_calculator):
 
     # The vector of ankle to foot
     delta = joint_targets_calculator.p_uw["foot"] - p_uw_ankle
-    assert np.isclose(np.linalg.norm(delta), Config.L_ANKLE, atol=1e-12)
+    assert np.isclose(np.linalg.norm(delta), Config.ANKLE_LEN, atol=1e-12)
 
     e_uw_proj = np.array([e_L_proj[0], e_L_proj[2]], dtype=np.float64)
     e_uw_proj_norm = e_uw_proj / np.linalg.norm(e_uw_proj)
