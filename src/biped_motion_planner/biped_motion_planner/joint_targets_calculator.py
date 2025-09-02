@@ -2,7 +2,7 @@ import numpy as np
 import warnings
 from geometry_msgs.msg import Quaternion, Vector3
 from numpy.typing import NDArray
-from typing import Mapping
+from typing import Mapping, Optional
 from .config import Config
 from .linear_algebra_utils import LinearAlgebraUtils
 
@@ -112,3 +112,47 @@ class JointTargetsCalculator():
         e_uw_proj_norm = LinearAlgebraUtils.normalize_vec(e_uw_proj)
         d_uw_ankle = Config.ANKLE_LEN * e_uw_proj_norm
         return self.p_uw["foot"] - d_uw_ankle
+    
+    def _calc_theta_calf(self) -> tuple[Optional[float], Optional[NDArray[np.float64]], bool]:
+        # sign = -1 for forward-facing knee (human-like); sign = 1 for backward-facing knee (dog-like)
+        EPS = 1e-12
+        SIGN = -1
+        thigh_to_ankle_vec_uw = self.p_uw["ankle"] - self.p_uw["thigh"]
+        thigh_to_ankle_distance = np.linalg.norm(thigh_to_ankle_vec_uw)
+
+        if thigh_to_ankle_distance >= (Config.THIGH_LEN + Config.CALF_LEN)-EPS:
+            warnings.warn(
+                "Ankle is too far from hip. Cannot reach target",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+            theta_calf = 0.0
+            thigh_to_ankle_vec_uw_norm = thigh_to_ankle_vec_uw / thigh_to_ankle_distance
+            p_uw_ankle_new = self.p_uw["thigh"] + thigh_to_ankle_vec_uw_norm * (Config.THIGH_LEN + Config.CALF_LEN)
+            return theta_calf, p_uw_ankle_new, False
+        
+        elif thigh_to_ankle_distance <= abs(Config.THIGH_LEN - Config.CALF_LEN)+EPS:
+            warnings.warn(
+                "Ankle is too close to hip. Cannot reach target",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+            return None, None, True
+
+        # gamma is the angle between thigh link and calf link
+        cos_gamma = (Config.THIGH_LEN**2 + Config.CALF_LEN**2 - thigh_to_ankle_distance**2) / (2 * Config.THIGH_LEN * Config.CALF_LEN)
+        # TODO check cos gamma clamp +-1.0
+
+        gamma = np.sign(SIGN)*np.degrees(np.arccos(cos_gamma))
+        theta_calf = 180.0 - gamma
+        theta_calf = (theta_calf + 180) % 360 - 180
+
+        if (theta_calf < Config.CALF_MIN_DEG-EPS) or (theta_calf > Config.CALF_MAX_DEG+EPS):
+            warnings.warn(
+                f"theta_calf={theta_calf} exceeds +{Config.CALF_MAX_DEG} to -{Config.CALF_MIN_DEG} degree. Hold previous pose.",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+            return None, None, True
+
+        return theta_calf, self.p_uw["ankle"], False 

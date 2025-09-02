@@ -161,7 +161,7 @@ def test_calc_phi_BL(joint_targets_calculator):
         "hip": Vector3(x=0.0, y=0.0, z=-0.0)
     }
     phi_BL = joint_targets_calculator._calc_phi_BL()
-    assert np.allclose(phi_BL, 60, atol=1e-12)
+    assert np.isclose(phi_BL, 60, atol=1e-12)
 
 
 def test_project_gravity_to_uw_plane(joint_targets_calculator):
@@ -217,5 +217,86 @@ def test_calc_p_uw_ankle(joint_targets_calculator):
     delta_norm = delta / np.linalg.norm(delta)
     assert np.allclose(delta_norm, e_uw_proj_norm, atol=1e-12)
 
-    
-    
+def test_calc_theta_calf(monkeypatch, joint_targets_calculator):
+    # test1: ankle at 4th quadrant
+    monkeypatch.setattr(Config, "THIGH_LEN", 1.0)
+    monkeypatch.setattr(Config, "CALF_LEN", 1.0)
+    joint_targets_calculator.p_uw = {
+        "thigh": np.array([0.0, -1.0], dtype=np.float64),
+        "ankle": np.array([1.0, -2.2], dtype=np.float64)
+    }
+
+    theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+    assert np.isclose(theta_calf, -77.291, atol=1e-3)
+    assert np.allclose(p_uw_ankle_new, joint_targets_calculator.p_uw["ankle"], atol=1e-12)
+    assert hold_prev_pose is False
+
+    # test2: ankle at 3rd quadrant
+    monkeypatch.setattr(Config, "THIGH_LEN", 1.0)
+    monkeypatch.setattr(Config, "CALF_LEN", 3.0)
+    joint_targets_calculator.p_uw = {
+        "thigh": np.array([0.0, -1.0], dtype=np.float64),
+        "ankle": np.array([0.4639, -4.4691], dtype=np.float64)
+    }
+
+    theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+    assert np.isclose(theta_calf, -67.976, atol=1e-3)
+    assert np.allclose(p_uw_ankle_new, joint_targets_calculator.p_uw["ankle"], atol=1e-12)
+    assert hold_prev_pose is False
+
+    # test3: theta_calf equals -90
+    monkeypatch.setattr(Config, "THIGH_LEN", 1.0)
+    monkeypatch.setattr(Config, "CALF_LEN", 1.0)
+    joint_targets_calculator.p_uw = {
+        "thigh": np.array([0.0, -1.0], dtype=np.float64),
+        "ankle": np.array([1.0, -2.0], dtype=np.float64)
+    }
+
+    theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+    assert np.isclose(theta_calf, -90.0, atol=1e-3)
+    assert np.allclose(p_uw_ankle_new, joint_targets_calculator.p_uw["ankle"], atol=1e-12)
+    assert hold_prev_pose is False
+
+def test_calc_theta_calf_ankle_too_far(monkeypatch, joint_targets_calculator):
+    monkeypatch.setattr(Config, "THIGH_LEN", 1.0)
+    monkeypatch.setattr(Config, "CALF_LEN", 1.0)
+    joint_targets_calculator.p_uw = {
+        "thigh": np.array([0.0, -1.0], dtype=np.float64),
+        "ankle": np.array([5.0, -6.0], dtype=np.float64)
+    }
+
+    with pytest.warns(RuntimeWarning, match="Ankle is too far from hip"):
+        theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+    assert np.isclose(theta_calf, 0.0, atol=1e-12)
+    assert np.allclose(p_uw_ankle_new, np.array([2/np.sqrt(2), -1-(2/np.sqrt(2))]), atol=1e-12)
+    assert hold_prev_pose is False
+
+def test_calc_theta_calf_ankle_too_close(monkeypatch, joint_targets_calculator):
+    # Hold the previous pose if the ankle is too close to the thigh and unreachable.
+    monkeypatch.setattr(Config, "THIGH_LEN", 1.0)
+    monkeypatch.setattr(Config, "CALF_LEN", 3.0)
+    joint_targets_calculator.p_uw = {
+        "thigh": np.array([0.0, -1.0], dtype=np.float64),
+        "ankle": np.array([0.0, -2.0], dtype=np.float64)
+    }
+
+    with pytest.warns(RuntimeWarning, match="Ankle is too close to hip"):
+        theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+    assert hold_prev_pose is True
+    assert theta_calf is None
+    assert p_uw_ankle_new is None
+
+def test_calc_theta_calf_exceed(monkeypatch, joint_targets_calculator):
+    # Hold the previous pose if the calf joint angle (theta_calf) exceeds ±90°.
+    monkeypatch.setattr(Config, "THIGH_LEN", 1.0)
+    monkeypatch.setattr(Config, "CALF_LEN", 1.0)
+    joint_targets_calculator.p_uw = {
+        "thigh": np.array([0.0, -1.0], dtype=np.float64),
+        "ankle": np.array([0.0, -2.0], dtype=np.float64)
+    }
+
+    with pytest.warns(RuntimeWarning, match="exceeds"):
+        theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+    assert hold_prev_pose is True
+    assert theta_calf is None
+    assert p_uw_ankle_new is None
