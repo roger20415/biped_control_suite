@@ -25,3 +25,10 @@ def test_clamp_cos_outside(trigonometric_utils):
         trigonometric_utils.clamp_cos(1.0 + 1e-8)
     with pytest.raises(ValueError, match="cosine out of"):
         trigonometric_utils.clamp_cos(-1.0 - 1e-8)
+
+def test_normalize_angle_to_180(trigonometric_utils):
+    assert np.isclose(trigonometric_utils.normalize_angle_to_180(0), 0)
+    assert np.isclose(trigonometric_utils.normalize_angle_to_180(180), -180)
+    assert np.isclose(trigonometric_utils.normalize_angle_to_180(-180), -180)
+    assert np.isclose(trigonometric_utils.normalize_angle_to_180(190), -170)
+    assert np.isclose(trigonometric_utils.normalize_angle_to_180(-700), 20)

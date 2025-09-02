@@ -145,7 +145,7 @@ class JointTargetsCalculator():
         cos_gamma = TrigonometricUtils.clamp_cos(cos_gamma)
         gamma = SIGN*np.degrees(np.arccos(cos_gamma))
         theta_calf = 180.0 - gamma
-        theta_calf = (theta_calf + 180) % 360 - 180
+        theta_calf = TrigonometricUtils.normalize_angle_to_180(theta_calf)
 
         if (theta_calf < Config.CALF_MIN_DEG-EPS) or (theta_calf > Config.CALF_MAX_DEG+EPS):
             warnings.warn(

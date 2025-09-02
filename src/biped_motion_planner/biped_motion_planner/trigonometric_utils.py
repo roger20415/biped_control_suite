@@ -10,3 +10,12 @@ class TrigonometricUtils():
             warnings.warn("cosine slightly outside [-1,1]; clamped", RuntimeWarning)
             c = np.clip(c, -1.0, 1.0)
         return c
+    
+    
+    @staticmethod
+    def normalize_angle_to_180(angle: float) -> float:
+        """
+        Normalize an angle to the range [-180, 180].
+        """
+        angle = (angle + 180) % 360 - 180
+        return angle
