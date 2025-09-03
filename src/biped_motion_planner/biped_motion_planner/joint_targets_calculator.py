@@ -31,7 +31,7 @@ class JointTargetsCalculator():
         e_L_proj = self._project_gravity_to_uw_plane(R_WB.T, R_BL.T)
         self.p_uw["ankle"] = self._calc_p_uw_ankle(e_L_proj)
         self.p_uw["thigh"] = np.array([0.0, -Config.HIP_LEN])
-        self.joint_theta["calf"], self.p_uw["ankle"], hold_prev_pose = self._calc_theta_calf()
+        self.joint_theta["calf"], thigh_to_ankle_vec_uw, self.p_uw["ankle"], hold_prev_pose = self._calc_theta_calf()
         if hold_prev_pose is True:
             return hold_prev_pose, self.joint_targets
 
@@ -117,12 +117,13 @@ class JointTargetsCalculator():
         d_uw_ankle = Config.ANKLE_LEN * e_uw_proj_norm
         return self.p_uw["foot"] - d_uw_ankle
     
-    def _calc_theta_calf(self) -> tuple[Optional[float], Optional[NDArray[np.float64]], bool]:
+    def _calc_theta_calf(self) -> tuple[Optional[float], Optional[NDArray[np.float64]], Optional[NDArray[np.float64]], bool]:
         """
         Compute the calf (knee) angle in degrees and (optionally) a clamped ankle point.
 
         Returns: (theta_calf_deg, p_uw_ankle_new, hold_prev_pose)
         - theta_calf_deg: knee angle [deg] (None if caller should hold previous pose)
+        - thigh_to_ankle_vec_uw: vector from thigh to ankle in uw-plane (None if holding previous pose)
         - p_uw_ankle_new: ankle (u,w) after clamping (None if holding previous pose)
         - hold_prev_pose: True → do not update this cycle; reuse previous command
 
@@ -155,7 +156,8 @@ class JointTargetsCalculator():
             theta_calf = 0.0
             thigh_to_ankle_vec_uw_norm = thigh_to_ankle_vec_uw / thigh_to_ankle_distance
             p_uw_ankle_new = self.p_uw["thigh"] + thigh_to_ankle_vec_uw_norm * (Config.THIGH_LEN + Config.CALF_LEN)
-            return theta_calf, p_uw_ankle_new, False
+            thigh_to_ankle_vec_uw = p_uw_ankle_new - self.p_uw["thigh"]
+            return theta_calf, thigh_to_ankle_vec_uw, p_uw_ankle_new, False
         
         elif thigh_to_ankle_distance <= abs(Config.THIGH_LEN - Config.CALF_LEN)+EPS:
             warnings.warn(
@@ -163,7 +165,7 @@ class JointTargetsCalculator():
                 category=RuntimeWarning,
                 stacklevel=2,
             )
-            return None, None, True
+            return None, None, None, True
 
         # gamma is the angle between thigh link and calf link
         cos_gamma = (Config.THIGH_LEN**2 + Config.CALF_LEN**2 - thigh_to_ankle_distance**2) / (2 * Config.THIGH_LEN * Config.CALF_LEN)
@@ -178,6 +180,6 @@ class JointTargetsCalculator():
                 category=RuntimeWarning,
                 stacklevel=2,
             )
-            return None, None, True
+            return None, None, None, True
 
-        return theta_calf, self.p_uw["ankle"], False
+        return theta_calf, thigh_to_ankle_vec_uw, self.p_uw["ankle"], False

@@ -226,8 +226,9 @@ def test_calc_theta_calf(monkeypatch, joint_targets_calculator):
         "ankle": np.array([1.0, -2.2], dtype=np.float64)
     }
 
-    theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+    theta_calf, thigh_to_ankle_vec_uw, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
     assert np.isclose(theta_calf, -77.291, atol=1e-3)
+    assert np.allclose(thigh_to_ankle_vec_uw, np.array([1.0, -1.2]), atol=1e-12)
     assert np.allclose(p_uw_ankle_new, joint_targets_calculator.p_uw["ankle"], atol=1e-12)
     assert hold_prev_pose is False
 
@@ -239,8 +240,9 @@ def test_calc_theta_calf(monkeypatch, joint_targets_calculator):
         "ankle": np.array([0.4639, -4.4691], dtype=np.float64)
     }
 
-    theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+    theta_calf, thigh_to_ankle_vec_uw, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
     assert np.isclose(theta_calf, -67.976, atol=1e-3)
+    assert np.allclose(thigh_to_ankle_vec_uw, np.array([0.4639, -3.4691]), atol=1e-12)
     assert np.allclose(p_uw_ankle_new, joint_targets_calculator.p_uw["ankle"], atol=1e-12)
     assert hold_prev_pose is False
 
@@ -252,8 +254,9 @@ def test_calc_theta_calf(monkeypatch, joint_targets_calculator):
         "ankle": np.array([1.0, -2.0], dtype=np.float64)
     }
 
-    theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+    theta_calf, thigh_to_ankle_vec_uw, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
     assert np.isclose(theta_calf, -90.0, atol=1e-3)
+    assert np.allclose(thigh_to_ankle_vec_uw, np.array([1.0, -1.0]), atol=1e-12)
     assert np.allclose(p_uw_ankle_new, joint_targets_calculator.p_uw["ankle"], atol=1e-12)
     assert hold_prev_pose is False
 
@@ -264,11 +267,12 @@ def test_calc_theta_calf_ankle_too_far(monkeypatch, joint_targets_calculator):
         "thigh": np.array([0.0, -1.0], dtype=np.float64),
         "ankle": np.array([5.0, -6.0], dtype=np.float64)
     }
-
+    p_uw_ankle_new_expect = np.array([2/np.sqrt(2), -1-(2/np.sqrt(2))])
     with pytest.warns(RuntimeWarning, match="Ankle is too far from hip"):
-        theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+        theta_calf, thigh_to_ankle_vec_uw, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
     assert np.isclose(theta_calf, 0.0, atol=1e-12)
-    assert np.allclose(p_uw_ankle_new, np.array([2/np.sqrt(2), -1-(2/np.sqrt(2))]), atol=1e-12)
+    assert np.allclose(thigh_to_ankle_vec_uw, np.array([2/np.sqrt(2), -(2/np.sqrt(2))]), atol=1e-12)
+    assert np.allclose(p_uw_ankle_new, p_uw_ankle_new_expect, atol=1e-12)
     assert hold_prev_pose is False
 
 def test_calc_theta_calf_ankle_too_close(monkeypatch, joint_targets_calculator):
@@ -281,8 +285,9 @@ def test_calc_theta_calf_ankle_too_close(monkeypatch, joint_targets_calculator):
     }
 
     with pytest.warns(RuntimeWarning, match="Ankle is too close to hip"):
-        theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+        theta_calf, thigh_to_ankle_vec_uw, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
     assert hold_prev_pose is True
+    assert thigh_to_ankle_vec_uw is None
     assert theta_calf is None
     assert p_uw_ankle_new is None
 
@@ -296,7 +301,8 @@ def test_calc_theta_calf_exceed(monkeypatch, joint_targets_calculator):
     }
 
     with pytest.warns(RuntimeWarning, match="exceeds"):
-        theta_calf, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
+        theta_calf, thigh_to_ankle_vec_uw, p_uw_ankle_new, hold_prev_pose = joint_targets_calculator._calc_theta_calf()
     assert hold_prev_pose is True
+    assert thigh_to_ankle_vec_uw is None
     assert theta_calf is None
     assert p_uw_ankle_new is None
