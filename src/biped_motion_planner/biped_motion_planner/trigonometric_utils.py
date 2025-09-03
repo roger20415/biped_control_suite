@@ -11,7 +11,6 @@ class TrigonometricUtils():
             c = np.clip(c, -1.0, 1.0)
         return c
     
-    
     @staticmethod
     def normalize_angle_to_180(angle: float) -> float:
         """

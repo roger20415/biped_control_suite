@@ -17,7 +17,7 @@ class JointTargetsCalculator():
         self.joint_theta: dict[str, float] = {} # -v-axis rotation in the Leg frame
         self.joint_targets: dict[str, float] = {} # final joint angle commands
 
-    def calc_joint_targets(self, p_W: Mapping[str, Vector3], q_W_baselink: Quaternion) -> dict[str, float]:
+    def calc_joint_targets(self, p_W: Mapping[str, Vector3], q_W_baselink: Quaternion) -> tuple[bool, dict[str, float]]:
         self.p_W = dict(p_W)
         self.p_W["foot"] = Vector3(x=p_W["target"].x,
                                    y=p_W["target"].y,
@@ -31,6 +31,9 @@ class JointTargetsCalculator():
         e_L_proj = self._project_gravity_to_uw_plane(R_WB.T, R_BL.T)
         self.p_uw["ankle"] = self._calc_p_uw_ankle(e_L_proj)
         self.p_uw["thigh"] = np.array([0.0, -Config.HIP_LEN])
+        self.joint_theta["calf"], self.p_uw["ankle"], hold_prev_pose = self._calc_theta_calf()
+        if hold_prev_pose is True:
+            return hold_prev_pose, self.joint_targets
 
     def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
@@ -115,6 +118,28 @@ class JointTargetsCalculator():
         return self.p_uw["foot"] - d_uw_ankle
     
     def _calc_theta_calf(self) -> tuple[Optional[float], Optional[NDArray[np.float64]], bool]:
+        """
+        Compute the calf (knee) angle in degrees and (optionally) a clamped ankle point.
+
+        Returns: (theta_calf_deg, p_uw_ankle_new, hold_prev_pose)
+        - theta_calf_deg: knee angle [deg] (None if caller should hold previous pose)
+        - p_uw_ankle_new: ankle (u,w) after clamping (None if holding previous pose)
+        - hold_prev_pose: True → do not update this cycle; reuse previous command
+
+        Behavior:
+        • Too far (‖ankle-thigh‖ ≥ L1+L2 - EPS):
+            warn; return (0.0, ankle clamped to radius L1+L2 along thigh→ankle, False)
+        • Too close (‖ankle-thigh‖ ≤ |L1-L2| + EPS):
+            warn; return (None, None, True)
+        • Reachable:
+            use law of cosines; clamp cos to [-1,1]; map to human-knee sign; normalize to [-180,180].
+            If angle outside [CALF_MIN_DEG - EPS, CALF_MAX_DEG + EPS]:
+                warn; return (None, None, True)
+            else:
+                return (theta_calf, original ankle, False)
+
+        Notes: angles are degrees; EPS is a small tolerance; human-like knee uses negative bend.
+        """
         # sign = -1 for forward-facing knee (human-like); sign = 1 for backward-facing knee (dog-like)
         EPS = 1e-12
         SIGN = np.sign(-1)
@@ -155,4 +180,4 @@ class JointTargetsCalculator():
             )
             return None, None, True
 
-        return theta_calf, self.p_uw["ankle"], False 
+        return theta_calf, self.p_uw["ankle"], False
