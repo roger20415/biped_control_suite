@@ -197,3 +197,13 @@ class JointTargetsCalculator():
         theta_thigh = TrigonometricUtils.normalize_angle_to_180(theta_thigh)
 
         return theta_thigh
+    
+    def _calc_theta_ankle(self, e_L_proj: NDArray[np.float64]) -> float:
+        e_uw_proj = e_L_proj[[0, 2]]
+        alpha_thigh = self.joint_theta["thigh"] + Config.HIP_THETA_UW
+        alpha_calf = alpha_thigh + self.joint_theta["calf"]
+        alpha_ankle_rad = np.arctan2(e_uw_proj[1], e_uw_proj[0])
+        alpha_ankle = np.degrees(alpha_ankle_rad)
+        theta_ankle = alpha_ankle - alpha_calf
+        theta_ankle = TrigonometricUtils.normalize_angle_to_180(theta_ankle)
+        return theta_ankle

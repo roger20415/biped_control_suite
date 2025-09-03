@@ -329,3 +329,22 @@ def test_calc_theta_thigh(monkeypatch, joint_targets_calculator):
 
     theta_thigh = joint_targets_calculator._calc_theta_thigh(thigh_to_ankle_vec_uw)
     assert np.isclose(theta_thigh, 30.0, atol=1e-12)
+
+def test_calc_theta_ankle(joint_targets_calculator):
+    # test1: 3rd quadrant, human-like knee
+    joint_targets_calculator.joint_theta = {
+        "calf": -45.0,
+        "thigh": -30.0
+    }
+    e_L_proj = np.array([-1.0, 0.0, -1.0])
+    theta_ankle = joint_targets_calculator._calc_theta_ankle(e_L_proj)
+    assert np.isclose(theta_ankle, 30.0, atol=1e-12)
+
+    # test2: 4th quadrant, dog-like knee
+    joint_targets_calculator.joint_theta = {
+        "calf": 30.0,
+        "thigh": 30.0
+    }
+    e_L_proj = np.array([1.0, 0.0, -1.7320508075688772])
+    theta_ankle = joint_targets_calculator._calc_theta_ankle(e_L_proj)
+    assert np.isclose(theta_ankle, -30.0, atol=1e-12)
