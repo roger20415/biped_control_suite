@@ -306,3 +306,26 @@ def test_calc_theta_calf_exceed(monkeypatch, joint_targets_calculator):
     assert thigh_to_ankle_vec_uw is None
     assert theta_calf is None
     assert p_uw_ankle_new is None
+
+def test_calc_theta_thigh(monkeypatch, joint_targets_calculator):
+    # test1: 3rd quadrant, human-like knee
+    monkeypatch.setattr(Config, "THIGH_LEN", 3.0)
+    monkeypatch.setattr(Config, "CALF_LEN", 4.0)
+    thigh_to_ankle_vec_uw = np.array([-4.5809694797, -4.5809694797], dtype=np.float64)
+    joint_targets_calculator.joint_theta = {
+        "calf": -45.0
+    }
+
+    theta_thigh = joint_targets_calculator._calc_theta_thigh(thigh_to_ankle_vec_uw)
+    assert np.isclose(theta_thigh, -19.1135647, atol=1e-6)
+
+    # test2: 4th quadrant, dog-like knee
+    monkeypatch.setattr(Config, "THIGH_LEN", 1.0)
+    monkeypatch.setattr(Config, "CALF_LEN", 1.0)
+    thigh_to_ankle_vec_uw = np.array([1.3660254038, -1.3660254038], dtype=np.float64)
+    joint_targets_calculator.joint_theta = {
+        "calf": 30.0
+    }
+
+    theta_thigh = joint_targets_calculator._calc_theta_thigh(thigh_to_ankle_vec_uw)
+    assert np.isclose(theta_thigh, 30.0, atol=1e-12)
