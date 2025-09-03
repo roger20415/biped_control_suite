@@ -34,6 +34,7 @@ class JointTargetsCalculator():
         self.joint_theta["calf"], thigh_to_ankle_vec_uw, self.p_uw["ankle"], hold_prev_pose = self._calc_theta_calf()
         if hold_prev_pose is True:
             return hold_prev_pose, None
+        self.joint_theta["thigh"] = self._calc_theta_thigh(thigh_to_ankle_vec_uw)
 
     def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
@@ -192,7 +193,7 @@ class JointTargetsCalculator():
         alpha_thigh_to_ankle_vec_uw = np.degrees(alpha_thigh_to_ankle_vec_uw_rad)
         alpha_thigh_link_to_thigh_to_ankle_vec_uw = np.degrees(alpha_thigh_link_to_thigh_to_ankle_vec_uw_rad)
         alpha_thigh = alpha_thigh_to_ankle_vec_uw - alpha_thigh_link_to_thigh_to_ankle_vec_uw
-        theta_thigh = alpha_thigh - 270.0
+        theta_thigh = alpha_thigh - Config.HIP_THETA_UW
         theta_thigh = TrigonometricUtils.normalize_angle_to_180(theta_thigh)
-        
+
         return theta_thigh

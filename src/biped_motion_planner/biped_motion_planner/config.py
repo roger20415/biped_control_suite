@@ -7,3 +7,5 @@ class Config:
 
     CALF_MAX_DEG: float = 90 
     CALF_MIN_DEG: float = -90
+
+    HIP_THETA_UW: float = 270.0
