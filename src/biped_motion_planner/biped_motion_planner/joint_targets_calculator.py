@@ -207,3 +207,20 @@ class JointTargetsCalculator():
         theta_ankle = alpha_ankle - alpha_calf
         theta_ankle = TrigonometricUtils.normalize_angle_to_180(theta_ankle)
         return theta_ankle
+
+    def _calc_phi_foot(self, R_WB: NDArray[np.float64], R_BL: NDArray[np.float64], e_L_proj: NDArray[np.float64]) -> float:
+        z_W = np.array([0, 0, 1], dtype=np.float64)
+        w_B = R_BL[:, 2]
+        w_W = R_WB @ w_B  
+        # TODO handle e_L_proj[2] = 0 problem. Might happened.
+        if e_L_proj[2] >= 0:
+            raise ValueError("e_L_proj.w must < 0")
+        a_L_foot = np.array([-e_L_proj[2], 0, e_L_proj[0]], dtype=np.float64)
+        a_W_foot = R_WB @ R_BL @ a_L_foot
+
+        # When the uw plane rotates in the negative direction relative to the Baselink xz-plane
+        # Then the foot joint should rotate in the positive direction.
+        sign = np.sign(-np.dot(np.cross(z_W, w_W), a_W_foot))
+        phi_foot_rad = sign*np.arccos(np.dot(w_W, z_W)/(np.linalg.norm(w_W)*np.linalg.norm(z_W)))
+        phi_foot = np.degrees(phi_foot_rad)
+        return phi_foot

@@ -348,3 +348,62 @@ def test_calc_theta_ankle(joint_targets_calculator):
     e_L_proj = np.array([1.0, 0.0, -1.7320508075688772])
     theta_ankle = joint_targets_calculator._calc_theta_ankle(e_L_proj)
     assert np.isclose(theta_ankle, -30.0, atol=1e-12)
+
+def test_calc_phi_foot(joint_targets_calculator):
+    # test1: R_WB +z=45deg, R_BL +x=0deg
+    R_WB = np.array([[0.70710678, -0.70710678, 0.],
+                    [0.70710678,  0.70710678, 0.],
+                    [0.,          0.,         1.]], dtype=np.float64)
+    R_BL = np.array([[1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0]], dtype=np.float64)
+    e_L_proj = np.array([1.0, 0.0, -1.0], dtype=np.float64)
+    phi_foot = joint_targets_calculator._calc_phi_foot(R_WB, R_BL, e_L_proj)
+    assert np.isclose(phi_foot, 0.0, atol=1e-12)
+
+    # test2: R_WB +z=0deg, R_BL +x=-30deg
+    R_WB = np.array([[1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0]], dtype=np.float64)
+    R_BL = np.array([[1.0, 0.0, 0.0],
+                    [0.0, 0.8660254, 0.5],
+                    [0.0, -0.5, 0.8660254]], dtype=np.float64)
+    e_L_proj = np.array([-1.0, 0.0, -1.0], dtype=np.float64)
+    phi_foot = joint_targets_calculator._calc_phi_foot(R_WB, R_BL, e_L_proj)
+    assert np.isclose(phi_foot, 30.0, atol=1e-12)
+
+    # test3: R_WB +z=180deg, R_BL +x=-30deg
+    R_WB = np.array([[-1.0,  0.0,  0.0],
+                    [ 0.0, -1.0,  0.0],
+                    [ 0.0,  0.0,  1.0]], dtype=np.float64)
+
+    R_BL = np.array([[1.0, 0.0, 0.0],
+                    [0.0, 0.8660254, 0.5],
+                    [0.0, -0.5, 0.8660254]], dtype=np.float64)
+
+    e_L_proj = np.array([1.0, 0.0, -1.0], dtype=np.float64)
+    phi_foot = joint_targets_calculator._calc_phi_foot(R_WB, R_BL, e_L_proj)
+    assert np.isclose(phi_foot, 30.0, atol=1e-12)
+
+    # test4: R_WB +x=20deg/+y=20deg/z=-250deg, R_BL +x=-30deg
+    R_WB = np.array([
+        [-0.32139380, -0.88302222,  0.34202014],
+        [ 0.84301347, -0.43131696, -0.32139380],
+        [ 0.43131696,  0.18503361,  0.88302222]
+    ], dtype=np.float64)
+
+    R_BL = np.array([
+        [1.00000000, 0.00000000, 0.00000000],
+        [0.00000000, 0.86602540, 0.50000000],
+        [0.00000000,-0.50000000, 0.86602540]
+    ], dtype=np.float64)
+    e_L_proj = np.array([1806.0, 0.0, -100.0], dtype=np.float64)
+    phi_foot = joint_targets_calculator._calc_phi_foot(R_WB, R_BL, e_L_proj)
+    assert np.isclose(phi_foot, 30.992303, atol=1e-12)
+
+def test_calc_phi_foot_e_L_proj_w_positive_raises(joint_targets_calculator):
+    R_WB = np.eye(3, dtype=np.float64)
+    R_BL = np.eye(3, dtype=np.float64)
+    e_L_proj = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+    with pytest.raises(ValueError, match="must < 0"):
+        joint_targets_calculator._calc_phi_foot(R_WB, R_BL, e_L_proj)
