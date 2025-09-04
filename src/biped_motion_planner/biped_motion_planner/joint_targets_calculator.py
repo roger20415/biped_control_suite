@@ -41,7 +41,9 @@ class JointTargetsCalculator():
             return hold_prev_pose, None
         self.joint_theta["thigh"] = self._calc_theta_thigh(thigh_to_ankle_vec_uw)
         self.joint_theta["ankle"] = self._calc_theta_ankle(e_L_proj)
-        self.joint_phi["foot"] = self._calc_phi_foot(R_WB, R_BL, e_L_proj)
+        self.joint_phi["foot"], hold_prev_pose = self._calc_phi_foot(R_WB, R_BL, e_L_proj)
+        if hold_prev_pose is True:
+            return hold_prev_pose, None
         self.joint_targets_rad.update(self._calc_and_clamp_joint_targets_rad())
         return hold_prev_pose, self.joint_targets_rad
 
@@ -217,13 +219,20 @@ class JointTargetsCalculator():
         theta_ankle = TrigonometricUtils.normalize_angle_to_180(theta_ankle)
         return theta_ankle
 
-    def _calc_phi_foot(self, R_WB: NDArray[np.float64], R_BL: NDArray[np.float64], e_L_proj: NDArray[np.float64]) -> float:
+    def _calc_phi_foot(self, R_WB: NDArray[np.float64], R_BL: NDArray[np.float64], e_L_proj: NDArray[np.float64]) -> tuple[float,bool]:
         z_W = np.array([0, 0, 1], dtype=np.float64)
         w_B = R_BL[:, 2]
         w_W = R_WB @ w_B  
-        # TODO handle e_L_proj[2] = 0 problem. Might happened.
-        if e_L_proj[2] >= 0:
+        if e_L_proj[2] > 0:
             raise ValueError("e_L_proj.w must < 0")
+        elif e_L_proj[2] == 0.0:
+            warnings.warn(
+                "e_L_proj.w is zero; foot yaw is degenerated. Hold previous pose.",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+            hold_prev_pose = True
+            return None, hold_prev_pose
         a_L_foot = np.array([-e_L_proj[2], 0, e_L_proj[0]], dtype=np.float64)
         a_W_foot = R_WB @ R_BL @ a_L_foot
 
@@ -232,7 +241,7 @@ class JointTargetsCalculator():
         sign = np.sign(-np.dot(np.cross(z_W, w_W), a_W_foot))
         phi_foot_rad = sign*np.arccos(np.dot(w_W, z_W)/(np.linalg.norm(w_W)*np.linalg.norm(z_W)))
         phi_foot = np.degrees(phi_foot_rad)
-        return phi_foot
+        return phi_foot, False
     
     def _calc_and_clamp_joint_targets_rad(self) -> dict[str, float]:
         joint_targets_deg: dict[str, float] = {}
