@@ -18,3 +18,18 @@ class TrigonometricUtils():
         """
         angle = (angle + 180) % 360 - 180
         return angle
+    
+    @staticmethod
+    def clip_deg(value: float, low: float, high: float, joint: str, side: str) -> float:
+        """Clamp value to [low, high]; warn if clipping happened."""
+        v = float(value)
+        clipped = float(np.clip(v, low, high))
+        if clipped != v:
+            bound = 'min' if v < low else 'max'
+            limit = low if v < low else high
+            warnings.warn(
+                f"{side} {joint}: {v:.6f}° -> {clipped:.6f}° (hit {bound}={limit:.6f}°)",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+        return clipped

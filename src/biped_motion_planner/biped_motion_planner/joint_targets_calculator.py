@@ -2,23 +2,29 @@ import numpy as np
 import warnings
 from geometry_msgs.msg import Quaternion, Vector3
 from numpy.typing import NDArray
-from typing import Mapping, Optional
+from typing import Literal, Mapping, Optional
 from .config import Config
 from .linear_algebra_utils import LinearAlgebraUtils
 from .trigonometric_utils import TrigonometricUtils
 
+LegSide = Literal["left", "right", "undefined"]
+
+
 class JointTargetsCalculator():
     def __init__(self):
+        self.leg_side: LegSide = "undefined"
         self.p_W: dict[str, Vector3] = {} # points in the World frame
         self.p_B: dict[str, Vector3] = {} # points in the Baselink frame
         self.p_L: dict[str, Vector3] = {} # points in the Leg frame
         self.p_uw: dict[str, NDArray[np.float64]] = {} # points in the (u,w) coordinates in the Leg frame
-        self.joint_phi: dict[str, float] = {} # +u-axis rotation in the Leg frame
-        self.joint_theta: dict[str, float] = {} # -v-axis rotation in the Leg frame
-        self.joint_targets: dict[str, float] = {} # final joint angle commands
+        self.joint_phi: dict[str, float] = {} # +u-axis rotation in the Leg frame (in degrees)
+        self.joint_theta: dict[str, float] = {} # -v-axis rotation in the Leg frame (in degrees)
+        self.joint_targets_rad: dict[str, float] = {} # final joint angle commands (in radians)
 
     def calc_joint_targets(self, p_W: Mapping[str, Vector3], q_W_baselink: Quaternion) -> tuple[bool, dict[str, float]]:
         self.p_W = dict(p_W)
+        # TODO Function define leg side
+        self.leg_side = "left"
         self.p_W["foot"] = Vector3(x=p_W["target"].x,
                                    y=p_W["target"].y,
                                    z=p_W["target"].z + Config.FOOT_LEN)
@@ -35,6 +41,9 @@ class JointTargetsCalculator():
         if hold_prev_pose is True:
             return hold_prev_pose, None
         self.joint_theta["thigh"] = self._calc_theta_thigh(thigh_to_ankle_vec_uw)
+        self.joint_theta["ankle"] = self._calc_theta_ankle(e_L_proj)
+        self.joint_phi["foot"] = self._calc_phi_foot(R_WB, R_BL, e_L_proj)
+        #self.joint_targets_rad.update(self._calc_and_clamp_joint_targets_rad())
 
     def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
@@ -224,3 +233,31 @@ class JointTargetsCalculator():
         phi_foot_rad = sign*np.arccos(np.dot(w_W, z_W)/(np.linalg.norm(w_W)*np.linalg.norm(z_W)))
         phi_foot = np.degrees(phi_foot_rad)
         return phi_foot
+    
+    def _calc_and_clamp_joint_targets_rad(self) -> dict[str, float]:
+        joint_targets_deg: dict[str, float] = {}
+        joint_targets_rad: dict[str, float] = {}
+        if self.leg_side == "left":
+            joint_targets_deg["hip"] = TrigonometricUtils.clip_deg(self.joint_phi["leg"], Config.L_HIP_MIN_DEG, Config.L_HIP_MAX_DEG, "hip", "left")
+            joint_targets_deg["thigh"] = TrigonometricUtils.clip_deg(self.joint_theta["thigh"], Config.THIGH_MIN_DEG, Config.THIGH_MAX_DEG, "thigh", "left")
+            joint_targets_deg["calf"] = TrigonometricUtils.clip_deg(-self.joint_theta["calf"], Config.CALF_MIN_DEG, Config.CALF_MAX_DEG, "calf", "left")
+            joint_targets_deg["ankle"] = TrigonometricUtils.clip_deg(-self.joint_theta["ankle"], Config.ANKLE_MIN_DEG, Config.ANKLE_MAX_DEG, "ankle", "left")
+            joint_targets_deg["foot"] = TrigonometricUtils.clip_deg(-self.joint_phi["foot"], Config.FOOT_MIN_DEG, Config.FOOT_MAX_DEG, "foot", "left")
+
+        elif self.leg_side == "right":
+            joint_targets_deg["hip"] = TrigonometricUtils.clip_deg(self.joint_phi["leg"], Config.R_HIP_MIN_DEG, Config.R_HIP_MAX_DEG, "hip", "right")
+            joint_targets_deg["thigh"] = TrigonometricUtils.clip_deg(-self.joint_theta["thigh"], Config.THIGH_MIN_DEG, Config.THIGH_MAX_DEG, "thigh", "right")
+            joint_targets_deg["calf"] = TrigonometricUtils.clip_deg(self.joint_theta["calf"], Config.CALF_MIN_DEG, Config.CALF_MAX_DEG, "calf", "right")
+            joint_targets_deg["ankle"] = TrigonometricUtils.clip_deg(self.joint_theta["ankle"], Config.ANKLE_MIN_DEG, Config.ANKLE_MAX_DEG, "ankle", "right")
+            joint_targets_deg["foot"] = TrigonometricUtils.clip_deg(-self.joint_phi["foot"], Config.FOOT_MIN_DEG, Config.FOOT_MAX_DEG, "foot", "right")
+
+        elif self.leg_side == "undefined":
+            raise ValueError("Leg side is undefined.")
+        
+        for joint, target_deg in joint_targets_deg.items():
+            joint_targets_rad[joint] = np.deg2rad(target_deg)
+        
+        return joint_targets_rad
+        
+
+

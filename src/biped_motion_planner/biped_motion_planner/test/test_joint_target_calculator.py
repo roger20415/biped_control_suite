@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
-from geometry_msgs.msg import Quaternion, Vector3
 from biped_motion_planner.joint_targets_calculator import Config
 from biped_motion_planner.joint_targets_calculator import JointTargetsCalculator
+from geometry_msgs.msg import Quaternion, Vector3
+from pytest import approx
 
 
 @pytest.fixture
@@ -11,9 +12,9 @@ def joint_targets_calculator():
 
 def test_calc_joint_targets_adds_FOOT_LEN_to_target_z(joint_targets_calculator):
     p_W = {
-        "target": Vector3(x=1.5, y=2.5, z=3.5),
-        "baselink": Vector3(x=0.5, y=1.5, z=2.5),
-        "hip": Vector3(x=0.5, y=2.0, z=3.0)
+        "target": Vector3(x=1.5, y=1.5, z=0.0),
+        "baselink": Vector3(x=1.5, y=1.5, z=6.0),
+        "hip": Vector3(x=1.5, y=1.5, z=4.5)
     }
     q_W_baselink = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0) # no rotation
     joint_targets_calculator.calc_joint_targets(p_W, q_W_baselink)
@@ -407,3 +408,113 @@ def test_calc_phi_foot_e_L_proj_w_positive_raises(joint_targets_calculator):
     e_L_proj = np.array([0.0, 0.0, 1.0], dtype=np.float64)
     with pytest.raises(ValueError, match="must < 0"):
         joint_targets_calculator._calc_phi_foot(R_WB, R_BL, e_L_proj)
+
+def test_calc_and_clamp_joint_targets_rad(joint_targets_calculator):
+    # Test for left leg
+    joint_targets_calculator.leg_side = "left"
+    joint_targets_calculator.joint_theta = {
+        "thigh": 10.0,
+        "calf": 20.0,
+        "ankle": 30.0,
+    }
+    joint_targets_calculator.joint_phi = {
+        "leg": -10.0,
+        "foot": -20.0
+    }
+    joint_targets = joint_targets_calculator._calc_and_clamp_joint_targets_rad()
+    joint_targets_expected = {
+        "hip" : np.deg2rad(-10.0),
+        "thigh": np.deg2rad(10.0),
+        "calf": np.deg2rad(-20.0),
+        "ankle": np.deg2rad(-30.0),
+        "foot": np.deg2rad(20.0)
+    }
+    assert set(joint_targets) == set(joint_targets_expected)
+    assert joint_targets == approx(joint_targets_expected, rel=1e-6, abs=1e-12)
+
+    # Test for right leg
+    joint_targets_calculator.leg_side = "right"
+    joint_targets_calculator.joint_theta = {
+        "thigh": -10.0,
+        "calf": -20.0,
+        "ankle": -30.0,
+    }
+    joint_targets_calculator.joint_phi = {
+        "leg": 10.0,
+        "foot": 20.0
+    }
+    joint_targets = joint_targets_calculator._calc_and_clamp_joint_targets_rad()
+    joint_targets_expected = {
+        "hip" : np.deg2rad(10.0),
+        "thigh": np.deg2rad(10.0),
+        "calf": np.deg2rad(-20.0),
+        "ankle": np.deg2rad(-30.0),
+        "foot": np.deg2rad(-20.0)
+    }
+    assert set(joint_targets) == set(joint_targets_expected)
+    assert joint_targets == approx(joint_targets_expected, rel=1e-6, abs=1e-12)
+
+def test_calc_and_clamp_joint_targets_rad_exceed_limits(monkeypatch, joint_targets_calculator):
+    monkeypatch.setattr(Config, "L_HIP_MAX_DEG", 80.0)
+    monkeypatch.setattr(Config, "L_HIP_MIN_DEG", -50.0)
+    monkeypatch.setattr(Config, "R_HIP_MAX_DEG", 50.0)
+    monkeypatch.setattr(Config, "R_HIP_MIN_DEG", -80.0)
+    monkeypatch.setattr(Config, "THIGH_MAX_DEG", 90.0)
+    monkeypatch.setattr(Config, "THIGH_MIN_DEG", -90.0)
+    monkeypatch.setattr(Config, "CALF_MAX_DEG", 90.0)
+    monkeypatch.setattr(Config, "CALF_MIN_DEG", -90.0)
+    monkeypatch.setattr(Config, "ANKLE_MAX_DEG", 90.0)
+    monkeypatch.setattr(Config, "ANKLE_MIN_DEG", -90.0)
+    monkeypatch.setattr(Config, "FOOT_MAX_DEG", 90.0)
+    monkeypatch.setattr(Config, "FOOT_MIN_DEG", -90.0)
+
+    # Test for left leg
+    joint_targets_calculator.leg_side = "left"
+    joint_targets_calculator.joint_theta = {
+        "thigh": -100,
+        "calf": -100,
+        "ankle": -100,
+    }
+    joint_targets_calculator.joint_phi = {
+        "leg": 100.0,
+        "foot": 100.0
+    }
+    with pytest.warns(RuntimeWarning) as record:
+        joint_targets = joint_targets_calculator._calc_and_clamp_joint_targets_rad()
+    joint_targets_expected = {
+        "hip" : np.deg2rad(80.0),
+        "thigh": np.deg2rad(-90.0),
+        "calf": np.deg2rad(90.0),
+        "ankle": np.deg2rad(90.0),
+        "foot": np.deg2rad(-90.0)
+    }
+    assert set(joint_targets) == set(joint_targets_expected)
+    assert len(record) == 5
+
+    # Test for right leg
+    joint_targets_calculator.leg_side = "right"
+    joint_targets_calculator.joint_theta = {
+        "thigh": 100,
+        "calf": 100,
+        "ankle": 100,
+    }
+    joint_targets_calculator.joint_phi = {
+        "leg": -100.0,
+        "foot": -100.0
+    }
+    with pytest.warns(RuntimeWarning) as record:
+        joint_targets = joint_targets_calculator._calc_and_clamp_joint_targets_rad()
+    joint_targets_expected = {
+        "hip" : np.deg2rad(-80.0),
+        "thigh": np.deg2rad(-90.0),
+        "calf": np.deg2rad(90.0),
+        "ankle": np.deg2rad(90.0),
+        "foot": np.deg2rad(90.0)
+    }
+    assert set(joint_targets) == set(joint_targets_expected)
+    assert len(record) == 5
+
+def test_calc_joint_targets_leg_side_undefined(joint_targets_calculator):
+    joint_targets_calculator.leg_side = "undefined"
+    with pytest.raises(ValueError, match="Leg side is undefined."):
+        joint_targets_calculator._calc_and_clamp_joint_targets_rad()
