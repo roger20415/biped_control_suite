@@ -21,10 +21,9 @@ class JointTargetsCalculator():
         self.joint_theta: dict[str, float] = {} # -v-axis rotation in the Leg frame (in degrees)
         self.joint_targets_rad: dict[str, float] = {} # final joint angle commands (in radians)
 
-    def calc_joint_targets(self, p_W: Mapping[str, Vector3], q_W_baselink: Quaternion) -> tuple[bool, dict[str, float]]:
+    def calc_joint_targets(self, p_W: Mapping[str, Vector3], q_W_baselink: Quaternion, leg_side: str) -> tuple[bool, dict[str, float]]:
+        self.leg_side: LegSide = leg_side
         self.p_W = dict(p_W)
-        # TODO Function define leg side
-        self.leg_side = "left"
         self.p_W["foot"] = Vector3(x=p_W["target"].x,
                                    y=p_W["target"].y,
                                    z=p_W["target"].z + Config.FOOT_LEN)
@@ -43,7 +42,8 @@ class JointTargetsCalculator():
         self.joint_theta["thigh"] = self._calc_theta_thigh(thigh_to_ankle_vec_uw)
         self.joint_theta["ankle"] = self._calc_theta_ankle(e_L_proj)
         self.joint_phi["foot"] = self._calc_phi_foot(R_WB, R_BL, e_L_proj)
-        #self.joint_targets_rad.update(self._calc_and_clamp_joint_targets_rad())
+        self.joint_targets_rad.update(self._calc_and_clamp_joint_targets_rad())
+        return hold_prev_pose, self.joint_targets_rad
 
     def _transform_points_World_to_Baselink(self, T_BW: NDArray[np.float64]) -> dict[str, Vector3]:
         p_B_hip = LinearAlgebraUtils.transform_point(T_BW, self.p_W["hip"])
@@ -251,8 +251,8 @@ class JointTargetsCalculator():
             joint_targets_deg["ankle"] = TrigonometricUtils.clip_deg(self.joint_theta["ankle"], Config.ANKLE_MIN_DEG, Config.ANKLE_MAX_DEG, "ankle", "right")
             joint_targets_deg["foot"] = TrigonometricUtils.clip_deg(-self.joint_phi["foot"], Config.FOOT_MIN_DEG, Config.FOOT_MAX_DEG, "foot", "right")
 
-        elif self.leg_side == "undefined":
-            raise ValueError("Leg side is undefined.")
+        else:
+            raise ValueError(f"Leg side is undefined. Got '{self.leg_side}'")
         
         for joint, target_deg in joint_targets_deg.items():
             joint_targets_rad[joint] = np.deg2rad(target_deg)

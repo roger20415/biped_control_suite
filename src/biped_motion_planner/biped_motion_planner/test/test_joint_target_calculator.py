@@ -17,7 +17,7 @@ def test_calc_joint_targets_adds_FOOT_LEN_to_target_z(joint_targets_calculator):
         "hip": Vector3(x=1.5, y=1.5, z=4.5)
     }
     q_W_baselink = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0) # no rotation
-    joint_targets_calculator.calc_joint_targets(p_W, q_W_baselink)
+    joint_targets_calculator.calc_joint_targets(p_W, q_W_baselink, "left")
     assert np.isclose(
         joint_targets_calculator.p_W["foot"].z - joint_targets_calculator.p_W["target"].z, 
         Config.FOOT_LEN)
