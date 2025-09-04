@@ -1,10 +1,12 @@
 class Config:
     # foot length (in meters)
-    FOOT_LEN: float = 1.0
-    ANKLE_LEN: float = 1.0
-    HIP_LEN: float = 1.0
-    THIGH_LEN: float = 1.0
-    CALF_LEN: float = 1.0
+    HIP_LEN: float = 0.0043 # hip to thigh joint
+    THIGH_LEN: float = 0.006 # thigh to calf joint
+    CALF_LEN: float = 0.0053 # calf to ankle joint
+    ANKLE_LEN: float = 0.0043 # ankle to foot joint
+    FOOT_LEN: float = 0.0013 # foot joint to ground
+
+
 
     # joint angle limits (in degrees)
     L_HIP_MAX_DEG: float = 80.0
