@@ -1,12 +1,13 @@
+from geometry_msgs.msg import Vector3
+
+
 class Config:
     # foot length (in meters)
     HIP_LEN: float = 0.0043 # hip to thigh joint
     THIGH_LEN: float = 0.006 # thigh to calf joint
     CALF_LEN: float = 0.0053 # calf to ankle joint
     ANKLE_LEN: float = 0.0043 # ankle to foot joint
-    FOOT_LEN: float = 0.0013 # foot joint to ground
-
-
+    FOOT_LEN: float = 0.0011 # foot joint to ground
 
     # joint angle limits (in degrees)
     L_HIP_MAX_DEG: float = 80.0
@@ -24,3 +25,7 @@ class Config:
 
     # default joint angles (in degrees)
     HIP_THETA_UW: float = 270.0
+
+    # origin target point
+    ORIGIN_L_TARGET = Vector3(x=0.002, y= 0.00325, z=0.0)
+    ORIGIN_R_TARGET = Vector3(x=0.002, y=-0.00325, z=0.0)
