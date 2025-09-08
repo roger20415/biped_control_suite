@@ -90,6 +90,7 @@ class SingleLegControlNode(Node):
             self.get_logger().warn(f"State not ready, missing: {', '.join(missing)}")
             return
         # TODO: check if state is fresh enough
+        self.get_logger().info(f"p_W_target: {self._p_W['target']}")
         hold_prev_pose, joint_targets = self.joint_targets_calculator.calc_joint_targets(self._p_W, self._q_W_baselink, self._leg_side)
         if hold_prev_pose:
             self.get_logger().info("Holding previous pose.")
@@ -146,7 +147,11 @@ class SingleLegControlNode(Node):
         return (len(missing) == 0, missing)
     
     def _calc_p_W_target(self, key: str) -> Optional[Vector3]:
-        current_target = self._p_W["target"]
+        current_target = Vector3(
+            x=self._p_W["foot"].x,
+            y=self._p_W["foot"].y,
+            z=self._p_W["foot"].z-Config.FOOT_LEN
+        )
         if current_target is None:
             self.get_logger().error("Current target position is None.")
             return None
