@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'single_leg_control_node = biped_motion_planner.single_leg_control_node:main',
         ],
     },
 )
