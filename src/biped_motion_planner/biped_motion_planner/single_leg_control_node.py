@@ -9,6 +9,7 @@ from .config import Config
 from .joint_targets_calculator import JointTargetsCalculator
 
 JOINT_NUMS:int = 12
+FALL_DOWN_Z_THRESHOLD: float = 0.011 # in meters
 STEP_SIZE: float = 0.0001 # in meters
 REQUIRED_P_W_KEYS: tuple[str] = ("baselink", "hip", "foot", "target")
 REQUIRED_P_W_RAW_KEYS: tuple[str] = ("l_hip", "l_foot", "r_hip", "r_foot")
@@ -22,15 +23,7 @@ class SingleLegControlNode(Node):
         self._q_W_baselink: Optional[Quaternion] = None
         self._p_W_raw: dict[str, Optional[Vector3]] = {k: None for k in REQUIRED_P_W_RAW_KEYS}
         self._p_W: dict[str, Optional[Vector3]] = {k: None for k in REQUIRED_P_W_KEYS}
-
-        if self._leg_side == "left":
-            self._p_W["target"] = Config.ORIGIN_L_TARGET
-        elif self._leg_side == "right":
-            self._p_W["target"] = Config.ORIGIN_R_TARGET
-        else:
-            self.get_logger().error("Leg side is undefined. Exiting.")
-            rclpy.shutdown()
-            sys.exit(1)
+        self._init_p_W_target()
 
         qos_sensor = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -108,6 +101,9 @@ class SingleLegControlNode(Node):
         self._q_W_baselink = msg
     def _baselink_translate_callback(self, msg: Vector3) -> None:
         self._p_W["baselink"] = msg
+        if msg.z < FALL_DOWN_Z_THRESHOLD:
+            self.get_logger().warn("Robot has fallen down! Clear and init p_W_target")
+            self._init_p_W_target()
     def _l_hip_translate_callback(self, msg: Vector3) -> None:
         self._p_W_raw["l_hip"] = msg
     def _r_hip_translate_callback(self, msg: Vector3) -> None:
@@ -125,14 +121,14 @@ class SingleLegControlNode(Node):
     def _compose_joint_pose_for_publish(self, joint_targets) -> list[float]:
         joint_pose: list[float] = [0.0]*JOINT_NUMS
         if self._leg_side == "left":
-            joint_pose[1] = 0.004
+            joint_pose[1] = 0.003
             joint_pose[2] = joint_targets['hip'] # l_hip
             joint_pose[4] = joint_targets['thigh'] # l_thigh
             joint_pose[6] = joint_targets['calf'] # l_calf
             joint_pose[8] = joint_targets['ankle'] # l_ankle
             joint_pose[10] = joint_targets['foot'] # l_foot
         elif self._leg_side == "right":
-            joint_pose[1] = -0.004
+            joint_pose[1] = -0.003
             joint_pose[3] = joint_targets['hip'] # r_hip
             joint_pose[5] = joint_targets['thigh'] # r_thigh
             joint_pose[7] = joint_targets['calf'] # r_calf
@@ -183,6 +179,16 @@ class SingleLegControlNode(Node):
         elif self._leg_side == "right":
             self._p_W["hip"] = self._p_W_raw["r_hip"]
             self._p_W["foot"] = self._p_W_raw["r_foot"]
+    
+    def _init_p_W_target(self) -> None:
+        if self._leg_side == "left":
+            self._p_W["target"] = Config.ORIGIN_L_TARGET
+        elif self._leg_side == "right":
+            self._p_W["target"] = Config.ORIGIN_R_TARGET
+        else:
+            self.get_logger().error("Leg side is undefined. Exiting.")
+            rclpy.shutdown()
+            sys.exit(1)
     
 def main(args=None):
     rclpy.init(args=args)
