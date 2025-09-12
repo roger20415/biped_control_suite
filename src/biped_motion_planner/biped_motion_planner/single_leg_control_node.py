@@ -4,7 +4,7 @@ from geometry_msgs.msg import Quaternion, Vector3
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from std_msgs.msg import Float64MultiArray, String
-from typing import Literal, Optional, TypeAlias
+from typing import Optional
 from .config import Config
 from .joint_targets_calculator import JointTargetsCalculator
 
@@ -13,7 +13,6 @@ FALL_DOWN_Z_THRESHOLD: float = 0.011 # in meters
 STEP_SIZE: float = 0.0001 # in meters
 REQUIRED_P_W_KEYS: tuple[str] = ("baselink", "hip", "foot", "target")
 REQUIRED_P_W_RAW_KEYS: tuple[str] = ("l_hip", "l_foot", "r_hip", "r_foot")
-LegSide: TypeAlias = Literal["left", "right", "undefined"]
 
 class SingleLegControlNode(Node):
     def __init__(self):

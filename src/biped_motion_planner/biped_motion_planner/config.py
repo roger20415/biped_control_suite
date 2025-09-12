@@ -1,5 +1,7 @@
 from geometry_msgs.msg import Vector3
+from typing import Literal, TypeAlias
 
+LegSide: TypeAlias = Literal["left", "right", "undefined"]
 
 class Config:
     # foot length (in meters)
@@ -29,3 +31,13 @@ class Config:
     # origin target point
     ORIGIN_L_TARGET = Vector3(x=0.002, y= 0.00325, z=0.0)
     ORIGIN_R_TARGET = Vector3(x=0.002, y=-0.00325, z=0.0)
+
+    # link mass
+    BASELINK_MASS: float = 0.00073
+    BACK_MASS: float = 0.00276
+    SACRUM_MASS: float = 0.00013
+    HIP_MASS: float = 0.00009
+    THIGH_MASS: float = 0.0005
+    CALF_MASS: float = 0.00029
+    ANKLE_MASS: float = 0.00009
+    FOOT_MASS: float = 0.00046
