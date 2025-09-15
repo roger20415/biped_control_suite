@@ -6,7 +6,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float64MultiArray, String
 from typing import get_args, Literal, TypeAlias
 
-JOINT_NUMS:int = 12
+JOINT_NUMS:int = 10 # exclude back, sacrum
 TeleopKey: TypeAlias = Literal['w', 'a', 's', 'd', 'e', 'r']
 ALLOWED_TELEOPKEYS = set(get_args(TeleopKey))
 

@@ -5,10 +5,10 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from std_msgs.msg import Float64MultiArray, String
 from typing import Optional
-from .config import Config
+from .config import Config, LegSide
 from .joint_targets_calculator import JointTargetsCalculator
 
-JOINT_NUMS:int = 12
+JOINT_NUMS:int = 10 # exclude back, sacrum
 FALL_DOWN_Z_THRESHOLD: float = 0.011 # in meters
 STEP_SIZE: float = 0.0001 # in meters
 REQUIRED_P_W_KEYS: tuple[str] = ("baselink", "hip", "foot", "target")
@@ -121,19 +121,17 @@ class SingleLegControlNode(Node):
     def _compose_joint_pose_for_publish(self, joint_targets) -> list[float]:
         joint_pose: list[float] = [0.0]*JOINT_NUMS
         if self._leg_side == "left":
-            joint_pose[1] = 0.003
-            joint_pose[2] = joint_targets['hip'] # l_hip
-            joint_pose[4] = joint_targets['thigh'] # l_thigh
-            joint_pose[6] = joint_targets['calf'] # l_calf
-            joint_pose[8] = joint_targets['ankle'] # l_ankle
-            joint_pose[10] = joint_targets['foot'] # l_foot
+            joint_pose[0] = joint_targets['hip'] # l_hip
+            joint_pose[2] = joint_targets['thigh'] # l_thigh
+            joint_pose[4] = joint_targets['calf'] # l_calf
+            joint_pose[6] = joint_targets['ankle'] # l_ankle
+            joint_pose[8] = joint_targets['foot'] # l_foot
         elif self._leg_side == "right":
-            joint_pose[1] = -0.003
-            joint_pose[3] = joint_targets['hip'] # r_hip
-            joint_pose[5] = joint_targets['thigh'] # r_thigh
-            joint_pose[7] = joint_targets['calf'] # r_calf
-            joint_pose[9] = joint_targets['ankle'] # r_ankle
-            joint_pose[11] = joint_targets['foot'] # r_foot
+            joint_pose[1] = joint_targets['hip'] # r_hip
+            joint_pose[3] = joint_targets['thigh'] # r_thigh
+            joint_pose[5] = joint_targets['calf'] # r_calf
+            joint_pose[7] = joint_targets['ankle'] # r_ankle
+            joint_pose[9] = joint_targets['foot'] # r_foot
         return joint_pose
     
     def _check_state_ready(self) -> tuple[bool, list[str]]:
