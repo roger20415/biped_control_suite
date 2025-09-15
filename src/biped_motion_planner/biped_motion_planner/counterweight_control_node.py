@@ -123,16 +123,16 @@ class CounterweightControlNode(Node):
             return
         
         self._sacrum_target = self._calc_sacrum_target(vec_S_com_to_support, vec_S_sacrum_proj_norm)
-        self._pub_counterweight_pos([self._sacrum_target])
+        self._pub_counterweight_pos([0.0, self._sacrum_target])
     
     def _calc_sacrum_target(self, vec_S_com_to_support: NDArray[np.float64], vec_S_sacrum_proj_norm: NDArray[np.float64]) -> float:
         err_signed = float(np.dot(vec_S_com_to_support[:2], vec_S_sacrum_proj_norm[:2]))
         if abs(err_signed) < SACRUM_MOVE_THRESHOLD:
             return self._sacrum_target
         elif err_signed > 0:
-            sacrum_target = self._sacrum_target + SACRUM_MOVE_STEP
-        else:
             sacrum_target = self._sacrum_target - SACRUM_MOVE_STEP
+        else:
+            sacrum_target = self._sacrum_target + SACRUM_MOVE_STEP
         sacrum_target = float(np.clip(sacrum_target, Config.SACRUM_MIN_TARGET, Config.SACRUM_MAX_TARGET))
         return sacrum_target
         
