@@ -19,17 +19,22 @@ _COM_KEYS: tuple[str, ...] = (
     "l_ankle", "r_ankle",
     "l_foot", "r_foot",
 )
-SACRUM_MOVE_THRESHOLD: float = 1e-3 # in meters (left to right foot distance: 0.0065)
-SACRUM_MOVE_STEP: float = 0.018/500 # joint target command (sacrum joint limits: +-0.009)
+SACRUM_MOVE_THRESHOLD: float = 0.0065/100 # in meters (left to right foot distance: 0.0065)
+SACRUM_MOVE_STEP: float = 0.018/140 # joint target command (sacrum joint limits: +-0.009)
+FOOT_LINK_X_SEMI_LENGTH: float = 0.002 # in meters
 
 
 class CounterweightControlNode(Node):
     def __init__(self):
         super().__init__('counterweight_control_node')
         self._support_side: LegSide = "left"
-        self._p_W_joints_com: dict[str, np.ndarray] = {k: np.zeros(3, dtype=np.float64) for k in _COM_KEYS}
+        self._p_W_joints_com: dict[str, NDArray[np.float64]] = {k: np.zeros(3, dtype=np.float64) for k in _COM_KEYS}
         self._sacrum_target: float = 0.0
         self._if_fall_down: bool = False
+        self._p_W_l_foot: Optional[NDArray[np.float64]] = None
+        self._p_W_r_foot: Optional[NDArray[np.float64]] = None
+        self._q_W_l_foot: Optional[Quaternion] = None
+        self._q_W_r_foot: Optional[Quaternion] = None
 
         self.declare_parameter('publish_period', 0.05)  # 20 Hz
         self._publish_period: float = float(self.get_parameter('publish_period').value)
@@ -64,6 +69,30 @@ class CounterweightControlNode(Node):
             Vector3,
             '/baselink/translate',
             self._baselink_translate_callback,
+            qos_sensor
+        )
+        self._l_foot_translate_subscriber_ = self.create_subscription(
+            Vector3,
+            '/l_foot/translate',
+            self._l_foot_translate_callback,
+            qos_sensor
+        )
+        self._r_foot_translate_subscriber_ = self.create_subscription(
+            Vector3,
+            '/r_foot/translate',
+            self._r_foot_translate_callback,
+            qos_sensor
+        )
+        self._l_foot_quat_subscriber_ = self.create_subscription(
+            Quaternion,
+            '/l_foot/quat',
+            self._l_foot_quat_callback,
+            qos_sensor
+        )
+        self._r_foot_quat_subscriber_ = self.create_subscription(
+            Quaternion,
+            '/r_foot/quat',
+            self._r_foot_quat_callback,
             qos_sensor
         )
 
@@ -107,16 +136,25 @@ class CounterweightControlNode(Node):
         return p_W_biped_com
 
     def _calc_p_S_support(self) -> NDArray[np.float64]:
+        if self._p_W_l_foot is None or self._p_W_r_foot is None:
+            raise ValueError("Foot positions are not yet received.")
+        if self._q_W_l_foot is None or self._q_W_r_foot is None:
+            raise ValueError("Foot orientations are not yet received.")
+        
         if self._support_side == "left":
-            return np.array([self._p_W_joints_com["l_foot"][0], 
-                             self._p_W_joints_com["l_foot"][1], 
-                             0.0], dtype=np.float64)
+            xLFOOT_W_norm = self._calc_xFOOT_W_norm(self._q_W_l_foot)
+            p_S_support =  self._p_W_l_foot - FOOT_LINK_X_SEMI_LENGTH * xLFOOT_W_norm
         elif self._support_side == "right":
-            return np.array([self._p_W_joints_com["r_foot"][0], 
-                             self._p_W_joints_com["r_foot"][1], 
-                             0.0], dtype=np.float64)
+            xRFOOT_W_norm = self._calc_xFOOT_W_norm(self._q_W_r_foot)
+            p_S_support =  self._p_W_r_foot - FOOT_LINK_X_SEMI_LENGTH * xRFOOT_W_norm
         else:
             raise ValueError("Support side is undefined.")
+        return p_S_support
+    
+    def _calc_xFOOT_W_norm(self, q_W_foot: Quaternion) -> NDArray[np.float64]:
+        R_W_FOOT: NDArray[np.float64] = LinearAlgebraUtils.quaternion_to_rotation_matrix(q_W_foot)
+        xFOOT_W = R_W_FOOT[:, 0]
+        return LinearAlgebraUtils.normalize_vec(xFOOT_W)
     
     def _timer_callback(self) -> None:
         if self._if_fall_down:
@@ -140,6 +178,7 @@ class CounterweightControlNode(Node):
             return self._sacrum_target
         elif err_signed > 0:
             sacrum_target = self._sacrum_target - SACRUM_MOVE_STEP
+            # TODO remove prints
             print("+")
         else:
             sacrum_target = self._sacrum_target + SACRUM_MOVE_STEP
@@ -159,7 +198,17 @@ class CounterweightControlNode(Node):
             self._if_fall_down = True
         elif msg.z >= Config.FALL_DOWN_BASELINK_Z_THRESHOLD and self._if_fall_down:
             self.get_logger().info("Robot is back up.")
+            self._sacrum_target = 0.0
             self._if_fall_down = False
+
+    def _l_foot_translate_callback(self, msg: Vector3) -> None:
+        self._p_W_l_foot = np.array([msg.x, msg.y, msg.z], dtype=np.float64)
+    def _r_foot_translate_callback(self, msg: Vector3) -> None:
+        self._p_W_r_foot = np.array([msg.x, msg.y, msg.z], dtype=np.float64)
+    def _l_foot_quat_callback(self, msg: Quaternion) -> None:
+        self._q_W_l_foot = msg
+    def _r_foot_quat_callback(self, msg: Quaternion) -> None:
+        self._q_W_r_foot = msg
 
     def _calc_vec_S_com_to_support(self) -> NDArray[np.float64]:
         p_W_biped_com: NDArray[np.float64] = self._calc_p_W_biped_com(self._p_W_joints_com)
