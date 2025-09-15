@@ -13,8 +13,8 @@ def joint_targets_calculator():
 def test_calc_joint_targets_adds_FOOT_LEN_to_target_z(joint_targets_calculator):
     p_W = {
         "target": Vector3(x=1.5, y=1.5, z=0.0),
-        "baselink": Vector3(x=1.5, y=1.5, z=6.0),
-        "hip": Vector3(x=1.5, y=1.5, z=4.5)
+        "baselink": Vector3(x=1.5, y=1.5, z=0.04),
+        "hip": Vector3(x=1.5, y=1.5, z=0.02)
     }
     q_W_baselink = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0) # no rotation
     joint_targets_calculator.calc_joint_targets(p_W, q_W_baselink, "left")
