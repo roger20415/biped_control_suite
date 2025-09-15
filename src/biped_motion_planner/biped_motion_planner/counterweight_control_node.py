@@ -111,17 +111,30 @@ class CounterweightControlNode(Node):
             raise ValueError("Support side is undefined.")
     
     def _timer_callback(self) -> None:
-        vec_S_com_to_support = self._calc_vec_S_com_to_support()
-        vec_S_sacrum_proj = self._calc_vec_S_sacrum_proj()
+        if self._q_W_baselink is None:
+            self.get_logger().warn("Waiting for /baselink/quat ...")
+            return
 
-        if np.linalg.norm(vec_S_com_to_support) < SACRUM_MOVE_THRESHOLD:
-            pass
-        elif np.dot(vec_S_com_to_support, vec_S_sacrum_proj) > 0:
-            self._sacrum_target += SACRUM_MOVE_STEP
-
-        else: 
-            self._sacrum_target -= SACRUM_MOVE_STEP
+        try:
+            vec_S_com_to_support = self._calc_vec_S_com_to_support()
+            vec_S_sacrum_proj_norm   = self._calc_vec_S_sacrum_proj_norm()
+        except Exception as e:
+            self.get_logger().error(f"Timer step failed: {e}")
+            return
+        
+        self._sacrum_target = self._calc_sacrum_target(vec_S_com_to_support, vec_S_sacrum_proj_norm)
         self._pub_counterweight_pos([self._sacrum_target])
+    
+    def _calc_sacrum_target(self, vec_S_com_to_support: NDArray[np.float64], vec_S_sacrum_proj_norm: NDArray[np.float64]) -> float:
+        err_signed = float(np.dot(vec_S_com_to_support[:2], vec_S_sacrum_proj_norm[:2]))
+        if abs(err_signed) < SACRUM_MOVE_THRESHOLD:
+            return self._sacrum_target
+        elif err_signed > 0:
+            sacrum_target = self._sacrum_target + SACRUM_MOVE_STEP
+        else:
+            sacrum_target = self._sacrum_target - SACRUM_MOVE_STEP
+        sacrum_target = float(np.clip(sacrum_target, Config.SACRUM_MIN_TARGET, Config.SACRUM_MAX_TARGET))
+        return sacrum_target
         
     def _baselink_quat_callback(self, msg: Quaternion) -> None:
         self._q_W_baselink = msg
@@ -133,13 +146,16 @@ class CounterweightControlNode(Node):
         vec_S_com_to_support: NDArray[np.float64] = p_S_support - p_S_biped_com
         return vec_S_com_to_support
 
-    def _calc_vec_S_sacrum_proj(self) -> NDArray[np.float64]:
+    def _calc_vec_S_sacrum_proj_norm(self) -> NDArray[np.float64]:
         if self._q_W_baselink is None:
             raise ValueError("Baselink quaternion is not yet received.")
         R_WB = LinearAlgebraUtils.quaternion_to_rotation_matrix(self._q_W_baselink)
         vec_W_yB = R_WB[:, 1]
         vec_S_yB = np.array([vec_W_yB[0], vec_W_yB[1], 0.0], dtype=np.float64)
-        return vec_S_yB
+        vec_S_yB_length = np.linalg.norm(vec_S_yB)
+        if vec_S_yB_length < 1e-10:
+            return vec_S_yB
+        return vec_S_yB / vec_S_yB_length
 
 def main(args=None):   
     rclpy.init(args=args)
