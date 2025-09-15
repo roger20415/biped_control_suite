@@ -1,7 +1,7 @@
 import numpy as np
 import rclpy
 import sys
-from geometry_msgs.msg import Quaternion
+from geometry_msgs.msg import Quaternion, Vector3
 from numpy.typing import NDArray
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
@@ -19,8 +19,8 @@ _COM_KEYS: tuple[str, ...] = (
     "l_ankle", "r_ankle",
     "l_foot", "r_foot",
 )
-SACRUM_MOVE_THRESHOLD: float = 0.0065/50 # in meters (left to right foot distance: 0.0065)
-SACRUM_MOVE_STEP: float = 0.018/50 # joint target command (sacrum joint limits: +-0.009)
+SACRUM_MOVE_THRESHOLD: float = 1e-3 # in meters (left to right foot distance: 0.0065)
+SACRUM_MOVE_STEP: float = 0.018/500 # joint target command (sacrum joint limits: +-0.009)
 
 
 class CounterweightControlNode(Node):
@@ -29,6 +29,7 @@ class CounterweightControlNode(Node):
         self._support_side: LegSide = "left"
         self._p_W_joints_com: dict[str, np.ndarray] = {k: np.zeros(3, dtype=np.float64) for k in _COM_KEYS}
         self._sacrum_target: float = 0.0
+        self._if_fall_down: bool = False
 
         self.declare_parameter('publish_period', 0.05)  # 20 Hz
         self._publish_period: float = float(self.get_parameter('publish_period').value)
@@ -57,6 +58,13 @@ class CounterweightControlNode(Node):
             Float64MultiArray,
             '/counterweight/joint_targets',
             10
+        )
+
+        self._baselink_translate_subscriber_ = self.create_subscription(
+            Vector3,
+            '/baselink/translate',
+            self._baselink_translate_callback,
+            qos_sensor
         )
 
         self._timer = self.create_timer(self._publish_period, self._timer_callback)
@@ -111,6 +119,8 @@ class CounterweightControlNode(Node):
             raise ValueError("Support side is undefined.")
     
     def _timer_callback(self) -> None:
+        if self._if_fall_down:
+            return
         if self._q_W_baselink is None:
             self.get_logger().warn("Waiting for /baselink/quat ...")
             return
@@ -121,7 +131,6 @@ class CounterweightControlNode(Node):
         except Exception as e:
             self.get_logger().error(f"Timer step failed: {e}")
             return
-        
         self._sacrum_target = self._calc_sacrum_target(vec_S_com_to_support, vec_S_sacrum_proj_norm)
         self._pub_counterweight_pos([0.0, self._sacrum_target])
     
@@ -131,18 +140,33 @@ class CounterweightControlNode(Node):
             return self._sacrum_target
         elif err_signed > 0:
             sacrum_target = self._sacrum_target - SACRUM_MOVE_STEP
+            print("+")
         else:
             sacrum_target = self._sacrum_target + SACRUM_MOVE_STEP
+            print("-")
         sacrum_target = float(np.clip(sacrum_target, Config.SACRUM_MIN_TARGET, Config.SACRUM_MAX_TARGET))
+        print(f"sacrum_target: {sacrum_target}, err_signed: {err_signed}")
+        print("\n")
         return sacrum_target
         
     def _baselink_quat_callback(self, msg: Quaternion) -> None:
         self._q_W_baselink = msg
 
+    def _baselink_translate_callback(self, msg: Vector3) -> None:
+        if (msg.z < Config.FALL_DOWN_BASELINK_Z_THRESHOLD) and not self._if_fall_down:
+            self.get_logger().warn("Robot has fallen down! Clear and init sacrum target")
+            self._sacrum_target = 0.0
+            self._if_fall_down = True
+        elif msg.z >= Config.FALL_DOWN_BASELINK_Z_THRESHOLD and self._if_fall_down:
+            self.get_logger().info("Robot is back up.")
+            self._if_fall_down = False
+
     def _calc_vec_S_com_to_support(self) -> NDArray[np.float64]:
         p_W_biped_com: NDArray[np.float64] = self._calc_p_W_biped_com(self._p_W_joints_com)
         p_S_biped_com: NDArray[np.float64] = np.array([p_W_biped_com[0], p_W_biped_com[1], 0.0], dtype=np.float64)
         p_S_support: NDArray[np.float64] = self._calc_p_S_support()
+        print(f"p_S_biped_com: {p_S_biped_com}")
+        print(f"p_S_support: {p_S_support}")
         vec_S_com_to_support: NDArray[np.float64] = p_S_support - p_S_biped_com
         return vec_S_com_to_support
 

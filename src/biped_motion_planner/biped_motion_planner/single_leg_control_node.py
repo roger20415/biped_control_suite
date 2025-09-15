@@ -9,7 +9,6 @@ from .config import Config, LegSide
 from .joint_targets_calculator import JointTargetsCalculator
 
 JOINT_NUMS:int = 10 # exclude back, sacrum
-FALL_DOWN_Z_THRESHOLD: float = 0.011 # in meters
 STEP_SIZE: float = 0.0001 # in meters
 REQUIRED_P_W_KEYS: tuple[str] = ("baselink", "hip", "foot", "target")
 REQUIRED_P_W_RAW_KEYS: tuple[str] = ("l_hip", "l_foot", "r_hip", "r_foot")
@@ -101,7 +100,7 @@ class SingleLegControlNode(Node):
         self._q_W_baselink = msg
     def _baselink_translate_callback(self, msg: Vector3) -> None:
         self._p_W["baselink"] = msg
-        if msg.z < FALL_DOWN_Z_THRESHOLD:
+        if msg.z < Config.FALL_DOWN_BASELINK_Z_THRESHOLD:
             self.get_logger().warn("Robot has fallen down! Clear and init p_W_target")
             self._init_p_W_target()
     def _l_hip_translate_callback(self, msg: Vector3) -> None:
