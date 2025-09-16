@@ -44,3 +44,5 @@ class Config:
     CALF_MASS: float = 0.00029
     ANKLE_MASS: float = 0.00009
     FOOT_MASS: float = 0.00046
+
+    FALL_DOWN_BASELINK_Z_THRESHOLD: float = 0.011 # in meters
