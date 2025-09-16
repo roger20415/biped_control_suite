@@ -178,14 +178,9 @@ class CounterweightControlNode(Node):
             return self._sacrum_target
         elif err_signed > 0:
             sacrum_target = self._sacrum_target - SACRUM_MOVE_STEP
-            # TODO remove prints
-            print("+")
         else:
             sacrum_target = self._sacrum_target + SACRUM_MOVE_STEP
-            print("-")
         sacrum_target = float(np.clip(sacrum_target, Config.SACRUM_MIN_TARGET, Config.SACRUM_MAX_TARGET))
-        print(f"sacrum_target: {sacrum_target}, err_signed: {err_signed}")
-        print("\n")
         return sacrum_target
         
     def _baselink_quat_callback(self, msg: Quaternion) -> None:
@@ -214,8 +209,6 @@ class CounterweightControlNode(Node):
         p_W_biped_com: NDArray[np.float64] = self._calc_p_W_biped_com(self._p_W_joints_com)
         p_S_biped_com: NDArray[np.float64] = np.array([p_W_biped_com[0], p_W_biped_com[1], 0.0], dtype=np.float64)
         p_S_support: NDArray[np.float64] = self._calc_p_S_support()
-        print(f"p_S_biped_com: {p_S_biped_com}")
-        print(f"p_S_support: {p_S_support}")
         vec_S_com_to_support: NDArray[np.float64] = p_S_support - p_S_biped_com
         return vec_S_com_to_support
 
