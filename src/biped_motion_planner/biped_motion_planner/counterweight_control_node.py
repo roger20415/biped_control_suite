@@ -19,15 +19,15 @@ _COM_KEYS: tuple[str, ...] = (
     "l_ankle", "r_ankle",
     "l_foot", "r_foot",
 )
-SACRUM_MOVE_THRESHOLD: float = 0.0065/100 # in meters (left to right foot distance: 0.0065)
-SACRUM_MOVE_STEP: float = 0.018/140 # joint target command (sacrum joint limits: +-0.009)
+SACRUM_MOVE_THRESHOLD: float = 0.0065/50 # in meters (left to right foot distance: 0.0065)
+SACRUM_MOVE_STEP: float = 0.018/200 # joint target command (sacrum joint limits: +-0.009)
 FOOT_LINK_X_SEMI_LENGTH: float = 0.002 # in meters
 
 
 class CounterweightControlNode(Node):
     def __init__(self):
         super().__init__('counterweight_control_node')
-        self._support_side: LegSide = "left"
+        self._support_side: LegSide = "right"
         self._p_W_joints_com: dict[str, NDArray[np.float64]] = {k: np.zeros(3, dtype=np.float64) for k in _COM_KEYS}
         self._sacrum_target: float = 0.0
         self._if_fall_down: bool = False
