@@ -2,6 +2,7 @@ from geometry_msgs.msg import Vector3
 from typing import Literal, TypeAlias
 
 LegSide: TypeAlias = Literal["left", "right", "undefined"]
+SupportSide: TypeAlias = Literal["left", "right", "mid", "undefined"]
 
 class Config:
     # foot length (in meters)

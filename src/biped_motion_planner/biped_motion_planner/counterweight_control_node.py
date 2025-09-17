@@ -5,9 +5,9 @@ from geometry_msgs.msg import Quaternion, Vector3
 from numpy.typing import NDArray
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, String
 from typing import Optional
-from .config import Config, LegSide
+from .config import Config, SupportSide
 from .linear_algebra_utils import LinearAlgebraUtils
 
 _COM_KEYS: tuple[str, ...] = (
@@ -22,12 +22,12 @@ _COM_KEYS: tuple[str, ...] = (
 SACRUM_MOVE_THRESHOLD: float = 0.0065/50 # in meters (left to right foot distance: 0.0065)
 SACRUM_MOVE_STEP: float = 0.018/200 # joint target command (sacrum joint limits: +-0.009)
 FOOT_LINK_X_SEMI_LENGTH: float = 0.002 # in meters
-
+PUBLISH_PERIOD: float = 0.05 # in seconds
 
 class CounterweightControlNode(Node):
     def __init__(self):
         super().__init__('counterweight_control_node')
-        self._support_side: LegSide = "right"
+        self._support_side: SupportSide = "undefined"
         self._p_W_joints_com: dict[str, NDArray[np.float64]] = {k: np.zeros(3, dtype=np.float64) for k in _COM_KEYS}
         self._sacrum_target: float = 0.0
         self._if_fall_down: bool = False
@@ -35,16 +35,18 @@ class CounterweightControlNode(Node):
         self._p_W_r_foot: Optional[NDArray[np.float64]] = None
         self._q_W_l_foot: Optional[Quaternion] = None
         self._q_W_r_foot: Optional[Quaternion] = None
-
-        self.declare_parameter('publish_period', 0.05)  # 20 Hz
-        self._publish_period: float = float(self.get_parameter('publish_period').value)
-
         self._q_W_baselink: Optional[Quaternion] = None
 
         qos_sensor = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
             depth=10
+        )
+        self._support_side_subscriber_ = self.create_subscription(
+            String,
+            '/biped/support_side',
+            self._support_side_callback,
+            10
         )
         self._com_subscriber_ = self.create_subscription(
             Float64MultiArray,
@@ -96,12 +98,20 @@ class CounterweightControlNode(Node):
             qos_sensor
         )
 
-        self._timer = self.create_timer(self._publish_period, self._timer_callback)
+        self._timer = self.create_timer(PUBLISH_PERIOD, self._timer_callback)
 
     def _pub_counterweight_pos(self, counterweight_pos) -> None:
         msg = Float64MultiArray()
         msg.data = [float(i) for i in counterweight_pos]
         self._counterweight_publisher_.publish(msg)
+
+    def _support_side_callback(self, msg: String) -> None:
+        if msg.data != self._support_side:
+            self.get_logger().info(f"Switching support side from {self._support_side} to {msg.data}.")
+            if msg.data in ("left", "right", "mid"):
+                self._support_side = msg.data
+            else:
+                self.get_logger().error(f"Invalid support side: {msg.data}. Keeping previous: {self._support_side}.")
 
     def _com_callback(self, msg: Float64MultiArray) -> None:
         data = np.asarray(msg.data, dtype=np.float64)
@@ -157,6 +167,9 @@ class CounterweightControlNode(Node):
         return LinearAlgebraUtils.normalize_vec(xFOOT_W)
     
     def _timer_callback(self) -> None:
+        if self._support_side == "undefined":
+            self.get_logger().warn("Support side is undefined.")
+            return
         if self._if_fall_down:
             return
         if self._q_W_baselink is None:
