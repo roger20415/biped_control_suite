@@ -13,9 +13,9 @@ STEP_SIZE: float = 0.0001 # in meters
 REQUIRED_P_W_KEYS: tuple[str] = ("baselink", "hip", "foot", "target")
 REQUIRED_P_W_RAW_KEYS: tuple[str] = ("l_hip", "l_foot", "r_hip", "r_foot")
 
-class SingleLegControlNode(Node):
+class SwingLegControlNode(Node):
     def __init__(self):
-        super().__init__('single_leg_control_node')
+        super().__init__('swing_leg_control_node')
         self._leg_side: LegSide = "left"
         self.joint_targets_calculator = JointTargetsCalculator()
         self._q_W_baselink: Optional[Quaternion] = None
@@ -193,7 +193,7 @@ class SingleLegControlNode(Node):
     
 def main(args=None):
     rclpy.init(args=args)
-    node = SingleLegControlNode()
+    node = SwingLegControlNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
