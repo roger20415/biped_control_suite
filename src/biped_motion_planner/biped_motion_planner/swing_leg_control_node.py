@@ -11,6 +11,7 @@ from .joint_targets_calculator import JointTargetsCalculator
 JOINT_NUMS:int = 5 # exclude back, sacrum
 REQUIRED_P_W_KEYS: tuple[str] = ("baselink", "hip", "foot", "target")
 REQUIRED_P_W_RAW_KEYS: tuple[str] = ("l_hip", "l_foot", "r_hip", "r_foot")
+VALID_LEG_SIDES: tuple[str, ...] = ("left", "right")
 
 class SwingLegControlNode(Node):
     def __init__(self):
@@ -84,27 +85,26 @@ class SwingLegControlNode(Node):
             '/biped/right_joint_target',
             10
         )
-        self._right_joint_target_publisher_ = self.create_publisher(
-            Float64MultiArray,
-            '/biped/right_joint_target',
-            10
-        )
     
     def _swing_target_callback(self, msg: Vector3) -> None:
+        if self._leg_side not in VALID_LEG_SIDES:
+            self.get_logger().warn(f"Leg side is invalid: {self._leg_side}")
+            return
+        leg_side = self._leg_side
         self._p_W["target"] = msg
-        self._compose_leg_p_W()
+        self._compose_leg_p_W(leg_side)
         ready, missing = self._check_state_ready()
         if not ready:
             self.get_logger().warn(f"State not ready, missing: {', '.join(missing)}")
             return
         # TODO: check if state is fresh enough
         self.get_logger().info(f"swing_target: {self._p_W['target']}")
-        hold_prev_pose, joint_targets = self.joint_targets_calculator.calc_joint_targets(self._p_W, self._q_W_baselink, self._leg_side)
+        hold_prev_pose, joint_targets = self.joint_targets_calculator.calc_joint_targets(self._p_W, self._q_W_baselink, leg_side)
         if hold_prev_pose:
             self.get_logger().info("Holding previous pose.")
         else:
             joint_pose = self._compose_joint_pose_for_publish(joint_targets)
-            self._pub_joint_pos(joint_pose)
+            self._pub_joint_pos(joint_pose, leg_side)
 
     def _swing_side_callback(self, msg: String) -> None:
         if msg.data not in ("left", "right"):
@@ -130,15 +130,15 @@ class SwingLegControlNode(Node):
     def _r_foot_translate_callback(self, msg: Vector3) -> None:
         self._p_W_raw["r_foot"] = msg
     
-    def _pub_joint_pos(self, joint_pos: list[float]) -> None:
+    def _pub_joint_pos(self, joint_pos: list[float], leg_side: str) -> None:
         msg = Float64MultiArray()
         msg.data = [float(i) for i in joint_pos]
-        if self._leg_side == "left":
+        if leg_side == "left":
             self._left_joint_target_publisher_.publish(msg)
-        elif self._leg_side == "right":
+        elif leg_side == "right":
             self._right_joint_target_publisher_.publish(msg)
         else:
-            self.get_logger().error(f"Invalid leg side: {self._leg_side}. Cannot publish joint targets.")
+            self.get_logger().error(f"Invalid leg side: {leg_side}. Cannot publish joint targets.")
 
     def _compose_joint_pose_for_publish(self, joint_targets) -> list[float]:
         joint_pose: list[float] = [
@@ -161,14 +161,14 @@ class SwingLegControlNode(Node):
                 missing.append(f"p_W[{k}]")
         return (len(missing) == 0, missing)
     
-    def _compose_leg_p_W(self) -> None:
+    def _compose_leg_p_W(self, leg_side: str) -> None:
         if any(self._p_W_raw.get(k) is None for k in REQUIRED_P_W_RAW_KEYS):
             self.get_logger().error("Raw leg joint positions are incomplete.")
             return
-        if self._leg_side == "left":
+        if leg_side == "left":
             self._p_W["hip"] = self._p_W_raw["l_hip"]
             self._p_W["foot"] = self._p_W_raw["l_foot"]
-        elif self._leg_side == "right":
+        elif leg_side == "right":
             self._p_W["hip"] = self._p_W_raw["r_hip"]
             self._p_W["foot"] = self._p_W_raw["r_foot"]
     

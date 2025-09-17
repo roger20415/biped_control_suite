@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'swing_leg_control_node = biped_motion_planner.swing_leg_control_node:main',
+            'stance_leg_control_node = biped_motion_planner.stance_leg_control_node:main',
             'counterweight_control_node = biped_motion_planner.counterweight_control_node:main',
         ],
     },
