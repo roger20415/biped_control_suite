@@ -1,9 +1,8 @@
-import numpy as np
 import rclpy
 import sys
 from rclpy.node import Node
 from std_msgs.msg import Float32, Float64MultiArray, String
-from .config import Config, LegSide
+from .config import LegSide
 
 JOINT_NUMS:int = 5 # exclude back, sacrum
 VALID_LEG_SIDES: tuple[str, ...] = ("left", "right")
@@ -64,9 +63,6 @@ class StanceLegControlNode(Node):
             self.get_logger().error(f"Invalid leg side: {leg_side}. Cannot publish joint targets.")
 
     def _compose_joint_pose_for_publish(self, leg_alpha: float, leg_side: str) -> list[float]:
-        if leg_alpha > Config.THIGH_MAX_DEG or leg_alpha < Config.THIGH_MIN_DEG:
-            self.get_logger().warn(f"Leg alpha {leg_alpha} out of bounds. Clamping to limits.")
-            leg_alpha = np.clip(leg_alpha, Config.THIGH_MIN_DEG, Config.THIGH_MAX_DEG)
         if leg_side == "left":
             joint_pose: list[float] = [
                 0.0, # hip
