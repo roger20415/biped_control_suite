@@ -1,13 +1,11 @@
 import rclpy
 import sys
-from geometry_msgs.msg import Quaternion, Vector3
 from rclpy.node import Node
 from std_msgs.msg import Float32, Float64MultiArray, String
-from typing import Optional
-from .config import Config, LegSide
+from .config import LegSide
 
 JOINT_NUMS:int = 5 # exclude back, sacrum
-
+VALID_LEG_SIDES: tuple[str, ...] = ("left", "right")
 
 class StanceLegControlNode(Node):
     def __init__(self):
@@ -20,10 +18,10 @@ class StanceLegControlNode(Node):
             self._stance_side_callback,
             10
         )
-        self._stance_leg_target_subscriber_ = self.create_subscription(
+        self._stance_leg_alpha_subscriber_ = self.create_subscription(
             Float32,
-            '/biped/stance_leg_target',
-            self._stance_leg_target_callback,
+            '/biped/stance_leg_alpha',
+            self._stance_leg_alpha_callback,
             10
         )
 
@@ -38,9 +36,13 @@ class StanceLegControlNode(Node):
             10
         )
     
-    def _stance_leg_target_callback(self, msg: Vector3) -> None:
-        joint_pose = self._compose_joint_pose_for_publish(joint_targets)
-        self._pub_joint_pos(joint_pose)
+    def _stance_leg_alpha_callback(self, msg: Float32) -> None:
+        if self._leg_side not in VALID_LEG_SIDES:
+            self.get_logger().warn(f"Leg side is invalid: {self._leg_side}")
+            return
+        leg_side = self._leg_side
+        joint_pose = self._compose_joint_pose_for_publish(msg.data, leg_side)
+        self._pub_joint_pos(joint_pose, leg_side)
 
     def _stance_side_callback(self, msg: String) -> None:
         if msg.data not in ("left", "right"):
@@ -50,24 +52,38 @@ class StanceLegControlNode(Node):
             self.get_logger().info(f"Switching stance side from {self._leg_side} to {msg.data}.")
             self._leg_side = msg.data
 
-    def _pub_joint_pos(self, joint_pos: list[float]) -> None:
+    def _pub_joint_pos(self, joint_pos: list[float], leg_side: str) -> None:
         msg = Float64MultiArray()
         msg.data = [float(i) for i in joint_pos]
-        if self._leg_side == "left":
+        if leg_side == "left":
             self._left_joint_target_publisher_.publish(msg)
-        elif self._leg_side == "right":
+        elif leg_side == "right":
             self._right_joint_target_publisher_.publish(msg)
         else:
-            self.get_logger().error(f"Invalid leg side: {self._leg_side}. Cannot publish joint targets.")
+            self.get_logger().error(f"Invalid leg side: {leg_side}. Cannot publish joint targets.")
 
-    def _compose_joint_pose_for_publish(self, joint_targets) -> list[float]:
-        joint_pose: list[float] = [
-            joint_targets['hip'],
-            joint_targets['thigh'],
-            joint_targets['calf'],
-            joint_targets['ankle'],
-            joint_targets['foot']
-        ]
+    def _compose_joint_pose_for_publish(self, leg_alpha: float, leg_side: str) -> list[float]:
+        if leg_side == "left":
+            joint_pose: list[float] = [
+                0.0, # hip
+                -leg_alpha, # thigh
+                0.0, # calf
+                -leg_alpha, # ankle
+                0.0 # foot
+            ]
+
+        elif leg_side == "right":
+            joint_pose: list[float] = [
+                0.0, # hip
+                leg_alpha, # thigh
+                0.0, # calf
+                leg_alpha, # ankle
+                0.0 # foot
+            ]
+        else:
+            self.get_logger().error(f"Invalid leg side: {leg_side}. Cannot compose joint pose.")
+            return [0.0]*JOINT_NUMS
+        
         if len(joint_pose) != JOINT_NUMS:
             raise ValueError("Invalid swing leg joint pose length.")
         return joint_pose
