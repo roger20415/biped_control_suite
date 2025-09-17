@@ -4,7 +4,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32, Float64MultiArray, String
 from .config import LegSide
 
-JOINT_NUMS:int = 5 # exclude back, sacrum
+STANCE_LEG_JOINT_ALPHA: float = 5.0 # in degrees
 VALID_LEG_SIDES: tuple[str, ...] = ("left", "right")
 
 class StanceLegControlNode(Node):

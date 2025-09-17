@@ -24,7 +24,7 @@ class StanceLegControlNode(Node):
             '/biped/stance_leg_alpha',
             self._stance_leg_alpha_callback,
             10
-        )
+        ) # leg_alpha in degrees
 
         self._left_joint_target_publisher_ = self.create_publisher(
             Float64MultiArray,
@@ -38,12 +38,15 @@ class StanceLegControlNode(Node):
         )
     
     def _stance_leg_alpha_callback(self, msg: Float32) -> None:
+        # alpha in degrees
         if self._leg_side not in VALID_LEG_SIDES:
             self.get_logger().warn(f"Leg side is invalid: {self._leg_side}")
             return
         leg_side = self._leg_side
         joint_pose = self._compose_joint_pose_for_publish(msg.data, leg_side)
-        self._pub_joint_pos(joint_pose, leg_side)
+        # joint_pose in degrees
+        joint_pose_rad = [np.deg2rad(angle) for angle in joint_pose]  # Convert degrees to radians
+        self._pub_joint_pos(joint_pose_rad, leg_side)
 
     def _stance_side_callback(self, msg: String) -> None:
         if msg.data not in ("left", "right"):
@@ -64,6 +67,7 @@ class StanceLegControlNode(Node):
             self.get_logger().error(f"Invalid leg side: {leg_side}. Cannot publish joint targets.")
 
     def _compose_joint_pose_for_publish(self, leg_alpha: float, leg_side: str) -> list[float]:
+        # leg_alpha in degrees
         if leg_alpha > Config.THIGH_MAX_DEG or leg_alpha < Config.THIGH_MIN_DEG:
             self.get_logger().warn(f"Leg alpha {leg_alpha} out of bounds. Clamping to limits.")
             leg_alpha = np.clip(leg_alpha, Config.THIGH_MIN_DEG, Config.THIGH_MAX_DEG)

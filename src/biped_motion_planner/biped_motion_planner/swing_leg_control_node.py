@@ -100,6 +100,7 @@ class SwingLegControlNode(Node):
         # TODO: check if state is fresh enough
         self.get_logger().info(f"swing_target: {self._p_W['target']}")
         hold_prev_pose, joint_targets = self.joint_targets_calculator.calc_joint_targets(self._p_W, self._q_W_baselink, leg_side)
+        # joint_targets in rad
         if hold_prev_pose:
             self.get_logger().info("Holding previous pose.")
         else:
