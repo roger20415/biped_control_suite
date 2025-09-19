@@ -155,9 +155,11 @@ class CounterweightControlNode(Node):
         if support_side == "left":
             xLFOOT_W_norm = self._calc_xFOOT_W_norm(self._q_W_l_foot)
             p_S_support =  self._p_W_l_foot - FOOT_LINK_X_SEMI_LENGTH * xLFOOT_W_norm
+            p_S_support[2] = 0.0
         elif support_side == "right":
             xRFOOT_W_norm = self._calc_xFOOT_W_norm(self._q_W_r_foot)
             p_S_support =  self._p_W_r_foot - FOOT_LINK_X_SEMI_LENGTH * xRFOOT_W_norm
+            p_S_support[2] = 0.0
         else:
             raise ValueError("Support side is undefined.")
         return p_S_support
