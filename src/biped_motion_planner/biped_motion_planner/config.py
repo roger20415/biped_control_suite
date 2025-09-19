@@ -3,6 +3,8 @@ from typing import Literal, TypeAlias
 
 LegSide: TypeAlias = Literal["left", "right", "undefined"]
 SupportSide: TypeAlias = Literal["left", "right", "mid", "undefined"]
+VALID_LEG_SIDES: tuple[str, ...] = ("left", "right")
+VALID_SUPPORT_SIDES: tuple[str, ...] = ("left", "right", "mid")
 
 class Config:
     # foot length (in meters)
@@ -47,3 +49,5 @@ class Config:
     FOOT_MASS: float = 0.00046
 
     FALL_DOWN_BASELINK_Z_THRESHOLD: float = 0.011 # in meters
+
+    FOOT_LINK_X_SEMI_LENGTH: float = 0.002 # in meters
