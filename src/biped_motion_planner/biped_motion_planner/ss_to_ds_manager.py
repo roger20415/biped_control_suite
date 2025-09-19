@@ -1,16 +1,18 @@
+from typing import Mapping
+
 import numpy as np
 import sympy as sp
 from geometry_msgs.msg import Quaternion, Vector3
 from numpy.typing import NDArray
-from typing import Mapping, Optional
+
 from .config import Config, LegSide, SupportSide, VALID_LEG_SIDES, VALID_SUPPORT_SIDES
 from .linear_algebra_utils import LinearAlgebraUtils
 
 STANCE_LEG_JOINT_ALPHA: float = 5.0  # in degrees
 LAMBDA_FOR_SWING_END: float = 0.5  # between 0 and 1. lambda>0.5 baselink closer to support point and further from swing end.
 SWING_TRAJECTORY_MID_HEIGHT: float = 0.0015 # in meters
-REQUIRED_P_W_KEYS: tuple[str] = ("baselink", "l_foot", "r_foot")
-REQUIRED_Q_W_KEYS: tuple[str] = ("baselink", "l_foot", "r_foot")
+REQUIRED_P_W_KEYS: tuple[str, ...] = ("baselink", "l_foot", "r_foot")
+REQUIRED_Q_W_KEYS: tuple[str, ...] = ("baselink", "l_foot", "r_foot")
 
 class SSTODSManager:
     def __init__(self):
@@ -45,7 +47,7 @@ class SSTODSManager:
         stance_of_s = STANCE_LEG_JOINT_ALPHA * (1 - s)
         return sp.simplify(stance_of_s)
 
-    def build_swing_of_s(self, p_W: Mapping[str, Vector3], q_W: Mapping[str, Quaternion]) -> sp.Expr:
+    def build_swing_of_s(self, p_W: Mapping[str, Vector3], q_W: Mapping[str, Quaternion]) -> NDArray[object]:
         if not self._if_subscribe_data_ready(p_W, q_W):
             raise ValueError("Position or orientation data is not yet received.")
         if not self._if_side_defined():
@@ -54,7 +56,7 @@ class SSTODSManager:
         p_S_baselink_target: NDArray[np.float64] = self._calc_p_S_baselink_target(baselink_move_dist_xB, p_W, q_W)
         p_S_stance: NDArray[np.float64] = self._calc_p_S_stance(p_W, q_W)
         p_S_swing_end: NDArray[np.float64] = self._calc_p_S_swing_end(p_S_baselink_target, p_S_stance)
-        p_W_swing_start: NDArray[np.float64] = self._calc_p_W_swing_start(p_W)
+        p_W_swing_start: NDArray[np.float64] = self._calc_p_W_swing_start(p_W, q_W)
         swing_of_s = self._build_swing_of_s(p_W_swing_start, p_S_swing_end)
         return swing_of_s
 
@@ -70,14 +72,18 @@ class SSTODSManager:
     def _if_side_defined(self) -> bool:
         return self._stance_side in VALID_LEG_SIDES and self._swing_side in VALID_LEG_SIDES and self._support_side in VALID_SUPPORT_SIDES
 
-    def _build_swing_of_s(self, p_W_swing_start: NDArray[np.float64], p_S_swing_end: NDArray[np.float64]) -> sp.Expr:
+    def _build_swing_of_s(self, p_W_swing_start: NDArray[np.float64], p_S_swing_end: NDArray[np.float64]) -> NDArray[object]:
         p_S_swing_start = np.array([p_W_swing_start[0], p_W_swing_start[1], 0.0], dtype=np.float64)
         p_S_swing_mid = (p_S_swing_start + p_S_swing_end) / 2.0
         p_W_swing_mid = np.array([p_S_swing_mid[0], p_S_swing_mid[1], SWING_TRAJECTORY_MID_HEIGHT], dtype=np.float64)
 
         s = sp.symbols('s', real=True)
-        swing_of_s = (1-(s**2))*p_W_swing_start + 2*(1-s)*s*p_W_swing_mid + (s**2)*p_S_swing_end
-        return sp.simplify(swing_of_s)
+        raw_swing_of_s = ((1-s)**2)*p_W_swing_start + 2*(1-s)*s*p_W_swing_mid + (s**2)*p_S_swing_end
+        swing_of_s = np.empty(3, dtype=object)
+        for i in range(3):
+            swing_of_s[i] = sp.simplify(raw_swing_of_s[i])
+        
+        return swing_of_s
 
     def _calc_baselink_move_dist_xB(self) -> float:
         return (Config.THIGH_LEN + Config.CALF_LEN)*np.sin(np.deg2rad(STANCE_LEG_JOINT_ALPHA))
@@ -86,7 +92,7 @@ class SSTODSManager:
         R_WB = LinearAlgebraUtils.quaternion_to_rotation_matrix(q_W["baselink"])
         xB_W = R_WB[:, 0]
         xB_S = np.array([xB_W[0], xB_W[1], 0.0])
-        xB_S_norm = xB_S / np.linalg.norm(xB_S)
+        xB_S_norm = LinearAlgebraUtils.normalize_vec(xB_S)
         p_S_baselink = np.array([
             p_W["baselink"].x,
             p_W["baselink"].y,
